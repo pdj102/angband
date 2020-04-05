@@ -411,7 +411,7 @@ type:food
 graphics:,:w
 level:0
 weight:10
-cost:1
+cost:2000
 alloc:10:60 to 100
 power:0
 msg:Refreshing!
@@ -1142,7 +1142,7 @@ cost:376
 alloc:20:10 to 100
 attack:2d5:0:0
 armor:0:0
-desc:A long pole with a three- or four-pronged head balnced by a long spike.
+desc:A long pole with a three- or four-pronged head balanced by a long spike.
 
 
 ##### Bows, Crossbows, Slings #####
@@ -1841,9 +1841,8 @@ weight:5
 cost:500
 alloc:10:50 to 100
 attack:1d1:0:0
-armor:0:2
+armor:0:5+d5
 flags:IGNORE_ACID | IGNORE_ELEC | IGNORE_FIRE | IGNORE_COLD
-flags:SPELLS_OK
 desc:Highly protective gloves designed for an alchemist's elemental magics.
 
 #N:179:& Set~ of Mining Gloves

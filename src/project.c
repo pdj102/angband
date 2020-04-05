@@ -349,9 +349,15 @@ bool projectable(struct chunk *c, struct loc grid1, struct loc grid2, int flg)
 {
 	struct loc grid_g[512];
 	int grid_n = 0;
+	int max_range = z_info->max_range;
+
+	/* Check for shortened projection range */
+	if ((flg & PROJECT_SHORT) && player->timed[TMD_COVERTRACKS]) {
+		max_range /= 4;
+	}
 
 	/* Check the projection path */
-	grid_n = project_path(grid_g, z_info->max_range, grid1, grid2, flg);
+	grid_n = project_path(grid_g, max_range, grid1, grid2, flg);
 
 	/* No grid is ever projectable from itself */
 	if (!grid_n) return false;
@@ -384,7 +390,7 @@ struct loc origin_get_loc(struct source origin)
 	switch (origin.what) {
 		case SRC_MONSTER: {
 			struct monster *who = cave_monster(cave, origin.which.monster);
-			return who->grid;
+			return who ? who->grid : loc(-1, -1);
 		}
 
 		case SRC_TRAP: {
@@ -393,7 +399,8 @@ struct loc origin_get_loc(struct source origin)
 		}
 
 		case SRC_PLAYER:
-		case SRC_OBJECT:	/* At the moment only worn cursed objects use this */
+		case SRC_OBJECT:	/* Currently only worn cursed objects use this */
+		case SRC_CHEST_TRAP:
 			return player->grid;
 
 		case SRC_NONE:
@@ -969,8 +976,10 @@ bool project(struct source origin, int rad, struct loc finish,
 			if (project_p(origin, distance_to_grid[i], blast_grid[i],
 						  dam_at_dist[distance_to_grid[i]], typ, power)) {
 				notice = true;
-				if (player->is_dead)
+				if (player->is_dead) {
+					free(dam_at_dist);
 					return notice;
+				}
 				break;
 			}
 		}

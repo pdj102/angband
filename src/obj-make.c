@@ -21,6 +21,7 @@
 #include "cave.h"
 #include "effects.h"
 #include "init.h"
+#include "obj-chest.h"
 #include "obj-curse.h"
 #include "obj-gear.h"
 #include "obj-knowledge.h"
@@ -353,13 +354,13 @@ void ego_apply_magic(struct object *obj, int level)
 		/* Get a base resist if available, mark it as random */
 		if (random_base_resist(obj, &resist)) {
 			obj->el_info[resist].res_level = 1;
-			obj->el_info[resist].flags |= EL_INFO_RANDOM;
+			obj->el_info[resist].flags |= EL_INFO_RANDOM | EL_INFO_IGNORE;
 		}
 	} else if (kf_has(obj->ego->kind_flags, KF_RAND_HI_RES)) {
 		/* Get a high resist if available, mark it as random */
 		if (random_high_resist(obj, &resist)) {
 			obj->el_info[resist].res_level = 1;
-			obj->el_info[resist].flags |= EL_INFO_RANDOM;
+			obj->el_info[resist].flags |= EL_INFO_RANDOM | EL_INFO_IGNORE;
 		}
 	}
 
@@ -947,15 +948,8 @@ int apply_magic(struct object *obj, int lev, bool allow_artifacts, bool good,
 				obj->modifiers[OBJ_MOD_SPEED]++;
 		}
 	} else if (tval_is_chest(obj)) {
-		/* Hack -- skip ruined chests */
-		if (obj->kind->level > 0) {
-			/* Hack -- pick a "difficulty" */
-			obj->pval = randint1(obj->kind->level);
-
-			/* Never exceed "difficulty" of 55 to 59 */
-			if (obj->pval > 55)
-				obj->pval = (s16b)(55 + randint0(5));
-		}
+		/* Get a random, level-dependent set of chest traps */
+		obj->pval = pick_chest_traps(obj);
 	}
 
 	/* Apply minima from ego items if necessary */
@@ -1126,7 +1120,7 @@ struct object_kind *get_obj_num(int level, bool good, int tval)
 struct object *make_object(struct chunk *c, int lev, bool good, bool great,
 						   bool extra_roll, s32b *value, int tval)
 {
-	int base;
+	int base, tries = 3;
 	struct object_kind *kind;
 	struct object *new_obj;
 
@@ -1145,8 +1139,18 @@ struct object *make_object(struct chunk *c, int lev, bool good, bool great,
 	/* Base level for the object */
 	base = (good ? (lev + 10) : lev);
 
-	/* Try to choose an object kind */
-	kind = get_obj_num(base, good || great, tval);
+	/* Try to choose an object kind; reject most books the player can't read */
+	while (tries) {
+		kind = get_obj_num(base, good || great, tval);
+		if (kind && tval_is_book_k(kind) && !obj_kind_can_browse(kind)) {
+			if (one_in_(5)) break;
+			kind = NULL;
+			tries--;
+			continue;
+		} else {
+			break;
+		}
+	}
 	if (!kind)
 		return NULL;
 

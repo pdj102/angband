@@ -396,27 +396,7 @@ void player_init(struct player *p)
 	int i;
 	struct player_options opts_save = p->opts;
 
-	if (p->upkeep) {
-		if (p->upkeep->inven)
-			mem_free(p->upkeep->inven);
-		if (p->upkeep->quiver)
-			mem_free(p->upkeep->quiver);
-		mem_free(p->upkeep);
-	}
-	if (p->timed)
-		mem_free(p->timed);
-	if (p->obj_k) {
-		mem_free(p->obj_k->brands);
-		mem_free(p->obj_k->slays);
-		mem_free(p->obj_k->curses);
-		mem_free(p->obj_k);
-	}
-	if (p->history) {
-		string_free(p->history);
-	}
-	if (p->quests) {
-		player_quests_free(p);
-	}
+	player_cleanup_members(p);
 
 	/* Wipe the player */
 	memset(p, 0, sizeof(struct player));
@@ -917,6 +897,9 @@ void player_generate(struct player *p, const struct player_race *r,
 	/* Roll for age/height/weight */
 	get_ahw(p);
 
+	/* Always start with a well fed player */
+	p->timed[TMD_FOOD] = PY_FOOD_FULL - 1;
+
 	if (!old_history) {
 		if (p->history) {
 			string_free(p->history);
@@ -1141,9 +1124,6 @@ void do_cmd_accept_character(struct command *cmd)
 
 	/* Embody */
 	player_embody(player);
-
-	/* Always start with a well fed player */
-	player->timed[TMD_FOOD] = PY_FOOD_FULL - 1;
 
 	/* Give the player some money */
 	get_money();

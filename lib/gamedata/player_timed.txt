@@ -1,13 +1,14 @@
 # File: player_timed.txt
+
 # Used in conjunction with list-player-timed.h
 # Timed player properties
-#
+
 # Descriptions, messages and message types can be edited without bad effects.
-# Changing code or fail may have unpredictable results.
+# Changing fail may have unpredictable results.
 # Changing the name, reordering, or adding whole new entires will severely
 # disrupt the game, and should only be done when list-player-timed.h
 # (and other code) is also  being changed, and the game recompiled.
-#
+
 # Fields:
 # name - the effect name
 # desc - the effect description
@@ -120,6 +121,7 @@ grade:o:8:Weak:You are still weak.:You are getting weak from hunger!
 grade:y:15:Hungry:You are still hungry.:You are getting hungry.
 grade:G:90:Fed:You are no longer hungry.:You are no longer full.
 grade:g:100:Full:You are full!:
+msgt:HUNGRY
 
 name:PROTEVIL
 desc:protection from evil
@@ -305,8 +307,8 @@ on-end:The poison disappears from your {kind}.
 
 name:ATT_CONF
 desc:temporary monster confusion
-grade:U:10000:AttConf:Your {kind} begin{s} to glow!
-on-end:The glow fades from your {kind}.
+grade:U:10000:AttConf:Your hands begin to glow!
+on-end:The glow fades from your hands.
 
 name:ATT_EVIL
 desc:temporary slay evil
@@ -338,8 +340,8 @@ desc:escape on attack
 grade:m:10000:HitRun:You tense up ready to escape!
 on-end:You relax again.
 
-name:SCENTLESS
-desc:leave no scent trail
+name:COVERTRACKS
+desc:leave no scent trail, reduce visibility
 grade:T:10000:NoTrack:You begin covering your tracks.
 on-end:You stop covering your tracks.
 
@@ -348,10 +350,10 @@ desc:piercing shot
 grade:i:10000:PShot:You prepare to shoot powerfully!
 on-end:Your shooting power returns to normal.
 
-name:POWERBLOW
-desc:powerful blow
-grade:i:10000:PBlow:You feel you can strike with enormous force!
-on-end:Your sense of power dissipates.
+name:TAUNT
+desc:taunting
+grade:i:10000:Taunt:You start aggravating your enemies!
+on-end:You stop aggravating your enemies.
 
 name:BLOODLUST
 desc:desire to kill

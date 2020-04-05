@@ -32,6 +32,7 @@
 #include "obj-tval.h"
 #include "obj-util.h"
 #include "player-calcs.h"
+#include "player-timed.h"
 #include "target.h"
 
 /**
@@ -218,6 +219,8 @@ struct monster_race *get_mon_num(int level)
 	long total;
 	struct monster_race *race;
 	alloc_entry *table = alloc_race_table;
+	time_t cur_time = time(NULL);
+	struct tm *date = localtime(&cur_time);
 
 	/* Occasionally produce a nastier monster in the dungeon */
 	if (level > 0 && one_in_(z_info->ood_monster_chance))
@@ -227,9 +230,6 @@ struct monster_race *get_mon_num(int level)
 
 	/* Process probabilities */
 	for (i = 0; i < alloc_race_size; i++) {
-		time_t cur_time = time(NULL);
-		struct tm *date = localtime(&cur_time);
-
 		/* Monsters are sorted by depth */
 		if (table[i].level > level) break;
 
@@ -330,6 +330,11 @@ void delete_monster_idx(int m_idx)
 	if (player->upkeep->health_who == mon)
 		health_track(player->upkeep, NULL);
 
+	/* Hack -- remove any command status */
+	if (mon->m_timed[MON_TMD_COMMAND]) {
+		(void) player_clear_timed(player, TMD_COMMAND, true);
+	}
+
 	/* Monster is gone from square and group */
 	square_set_mon(cave, grid, 0);
 	monster_remove_from_groups(cave, mon);
@@ -397,6 +402,7 @@ void monster_index_move(int i1, int i2)
 
 	/* Old monster */
 	mon = cave_monster(cave, i1);
+	if (!mon) return;
 
 	/* Update the cave */
 	square_set_mon(cave, mon->grid, i2);

@@ -2231,7 +2231,12 @@ void calc_bonuses(struct player *p, struct player_state *state, bool known_only,
 	}
 
 	/* Movement speed */
-	state->num_moves = 1 + extra_moves;;
+	state->num_moves = 1 + extra_moves;
+
+	/* Damage reduction for blackguards */
+	if (player_has(p, PF_CROWD_FIGHT)) {
+		state->perc_dam_red = player_crowd_damage_reduction(p);
+	}
 
 	return;
 }
@@ -2593,7 +2598,7 @@ void redraw_stuff(struct player *p)
 
 	/* Hack - rarely update while resting or running, makes it over quicker */
 	if (((player_resting_count(p) % 100) || (p->upkeep->running % 100))
-		&& !(redraw & PR_MESSAGE))
+		&& !(redraw & (PR_MESSAGE | PR_MAP)))
 		return;
 
 	/* For each listed flag, send the appropriate signal to the UI */

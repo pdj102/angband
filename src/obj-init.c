@@ -109,20 +109,6 @@ static bool grab_element_flag(struct element_info *info, const char *flag_name)
 	return false;
 }
 
-static int code_index_in_array(const char *code_name[], const char *code)
-{
-	int i = 0;
-
-	while (code_name[i]) {
-		if (streq(code_name[i], code)) {
-			return i;
-		}
-		i++;
-	}
-
-	return -1;
-}
-
 static enum parser_error write_dummy_object_record(struct artifact *art, const char *name)
 {
 	struct object_kind *temp, *dummy;
@@ -187,7 +173,14 @@ static void write_curse_kinds(void)
 		struct curse *curse = &curses[i];
 		curse->obj->kind = curse_object_kind;
 		curse->obj->sval = sval;
-		curse->obj->known = object_new();
+		/*
+		 * Tolerate an already allocated known version:  restarting
+		 * without exiting and redoing the artifacts in
+		 * do_cmd_accept_character().
+		 */
+		if (! curse->obj->known) {
+			curse->obj->known = object_new();
+		}
 		curse->obj->known->kind = curse_object_kind;
 		curses[i].obj->known->sval = sval;
 	}

@@ -37,6 +37,7 @@
 #include "object.h"
 #include "player-calcs.h"
 #include "player-history.h"
+#include "player-util.h"
 #include "store.h"
 #include "target.h"
 #include "trap.h"
@@ -519,20 +520,18 @@ static bool glyph_command(ui_event ke, bool *glyph_picker_ptr,
 			  int height, int width, byte *cur_attr_ptr,
 			  wchar_t *cur_char_ptr, int col, int row)
 {
-        static byte attr_old = 0;
+	static byte attr_old = 0;
 	static char char_old = 0;
 	
 	/* Get mouse movement */
 	if (*glyph_picker_ptr && (ke.type == EVT_MOUSE)) {
-	        byte a = *cur_attr_ptr;
-
 		int mx = logical_width(ke.mouse.x - col);
 		
-		if (ke.mouse.y != row + height/2) return false;
+		if (ke.mouse.y != row + height / 2) return false;
 		
 		if ((mx >= 0) && (mx < MAX_COLORS) && (ke.mouse.button == 1)) {
-		        /* Set the visual */
-		        *cur_attr_ptr = a = mx - 14;
+			/* Set the visual */
+			*cur_attr_ptr = mx - 14;
 
 			/* Accept change */
 			remove_tiles(col, row, glyph_picker_ptr, width, height);
@@ -732,7 +731,7 @@ static void display_knowledge(const char *title, int *obj_list, int o_count,
 	int g_cur = 0, grp_old = -1; /* group list positions */
 	int o_cur = 0;					/* object list positions */
 	int g_o_count = 0;				 /* object count for group */
-	int oid = -1;  				/* object identifiers */
+	int oid;  				/* object identifiers */
 
 	region title_area = { 0, 0, 0, 4 };
 	region group_region = { 0, 6, MISSING, -2 };
@@ -1895,6 +1894,7 @@ static int obj2gid(int oid)
 static wchar_t *o_xchar(int oid)
 {
 	struct object_kind *kind = objkind_byid(oid);
+	if (!kind) return 0;
 
 	if (!kind->flavor || kind->aware)
 		return &kind_x_char[kind->kidx];
@@ -1905,6 +1905,7 @@ static wchar_t *o_xchar(int oid)
 static byte *o_xattr(int oid)
 {
 	struct object_kind *kind = objkind_byid(oid);
+	if (!kind) return NULL;
 
 	if (!kind->flavor || kind->aware)
 		return &kind_x_attr[kind->kidx];
@@ -1922,6 +1923,8 @@ static const char *o_xtra_prompt(int oid)
 	const char *no_insc = ", 's' to toggle ignore, 'r'ecall, '{'";
 	const char *with_insc = ", 's' to toggle ignore, 'r'ecall, '{', '}'";
 
+	if (!kind) return NULL;
+
 	/* Appropriate prompt */
 	if (kind->aware)
 		return kind->note_aware ? with_insc : no_insc;
@@ -1935,6 +1938,7 @@ static const char *o_xtra_prompt(int oid)
 static void o_xtra_act(struct keypress ch, int oid)
 {
 	struct object_kind *k = objkind_byid(oid);
+	if (!k) return;
 
 	/* Toggle ignore */
 	if (ignore_tval(k->tval) && (ch.code == 's' || ch.code == 'S')) {
@@ -2212,13 +2216,13 @@ static void display_feature(int col, int row, bool cursor, int oid )
 		/* Display symbols */
 		col = 65;
 		col += big_pad(col, row, feat_x_attr[LIGHTING_DARK][feat->fidx],
-				feat_x_char[LIGHTING_DARK][feat->fidx]);
+					   feat_x_char[LIGHTING_DARK][feat->fidx]);
 		col += big_pad(col, row, feat_x_attr[LIGHTING_LIT][feat->fidx],
-				feat_x_char[LIGHTING_LIT][feat->fidx]);
+					   feat_x_char[LIGHTING_LIT][feat->fidx]);
 		col += big_pad(col, row, feat_x_attr[LIGHTING_TORCH][feat->fidx],
-				feat_x_char[LIGHTING_TORCH][feat->fidx]);
-		col += big_pad(col, row, feat_x_attr[LIGHTING_LOS][feat->fidx],
-				feat_x_char[LIGHTING_LOS][feat->fidx]);
+					   feat_x_char[LIGHTING_TORCH][feat->fidx]);
+		(void) big_pad(col, row, feat_x_attr[LIGHTING_LOS][feat->fidx],
+					   feat_x_char[LIGHTING_LOS][feat->fidx]);
 	}
 }
 
@@ -2380,7 +2384,7 @@ static void display_trap(int col, int row, bool cursor, int oid )
 				trap_x_char[LIGHTING_LIT][trap->tidx]);
 		col += big_pad(col, row, trap_x_attr[LIGHTING_TORCH][trap->tidx],
 				trap_x_char[LIGHTING_TORCH][trap->tidx]);
-		col += big_pad(col, row, trap_x_attr[LIGHTING_LOS][trap->tidx],
+		(void) big_pad(col, row, trap_x_attr[LIGHTING_LOS][trap->tidx],
 				trap_x_char[LIGHTING_LOS][trap->tidx]);
 	}
 }
@@ -2740,7 +2744,7 @@ void do_cmd_messages(void)
 			Term_putstr(0, hgt - 3 - j, -1, attr, msg);
 
 			/* Highlight "shower" */
-			if (shower[0]) {
+			if (strlen(shower)) {
 				str = msg;
 
 				/* Display matches */
@@ -2761,7 +2765,7 @@ void do_cmd_messages(void)
 				   i, i + j - 1, n, q), 0, 0);
 
 		/* Display prompt (not very informative) */
-		if (shower[0])
+		if (strlen(shower))
 			prt("[Movement keys to navigate, '-' for next, '=' to find]",
 				hgt - 1, 0);
 		else
@@ -2839,7 +2843,7 @@ void do_cmd_messages(void)
 		}
 
 		/* Find the next item */
-		if (ke.key.code == '-' && shower[0]) {
+		if (ke.key.code == '-' && strlen(shower)) {
 			s16b z;
 
 			/* Scan messages */
@@ -2896,7 +2900,9 @@ void do_cmd_inven(void)
 				/* Track the object */
 				track_object(player->upkeep, obj);
 
-				while ((ret = context_menu_object(obj)) == 2);
+				if (!player_is_shapechanged(player)) {
+					while ((ret = context_menu_object(obj)) == 2);
+				}
 			}
 		} else {
 			/* Load screen */
@@ -2939,7 +2945,9 @@ void do_cmd_equip(void)
 				/* Track the object */
 				track_object(player->upkeep, obj);
 
-				while ((ret = context_menu_object(obj)) == 2);
+				if (!player_is_shapechanged(player)) {
+					while ((ret = context_menu_object(obj)) == 2);
+				}
 
 				/* Stay in "equipment" mode */
 				player->upkeep->command_wrk = (USE_EQUIP);
@@ -2985,7 +2993,9 @@ void do_cmd_quiver(void)
 				/* Track the object */
 				track_object(player->upkeep, obj);
 
-				while ((ret = context_menu_object(obj)) == 2);
+				if (!player_is_shapechanged(player)) {
+					while  ((ret = context_menu_object(obj)) == 2);
+				}
 
 				/* Stay in "quiver" mode */
 				player->upkeep->command_wrk = (USE_QUIVER);

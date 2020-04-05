@@ -109,11 +109,11 @@ int effect_calculate_value(effect_handler_context_t *context, bool use_boost)
 			damroll(context->value.dice, context->value.sides);
 	}
 
-	/* Remove boosts for now
+	/* Device boost */
 	if (use_boost) {
 		final *= (100 + context->boost);
 		final /= 100;
-		} */
+	}
 
 	return final;
 }
@@ -124,8 +124,11 @@ static void get_target(struct source origin, int dir, struct loc *grid,
 	switch (origin.what) {
 		case SRC_MONSTER: {
 			struct monster *monster = cave_monster(cave, origin.which.monster);
-			int conf_level = monster_effect_level(monster, MON_TMD_CONF);
-			int accuracy = 100;
+			int conf_level, accuracy = 100;
+
+			if (!monster) break;
+
+			conf_level = monster_effect_level(monster, MON_TMD_CONF);
 			while (conf_level) {
 				accuracy *= (100 - CONF_RANDOM_CHANCE);
 				accuracy /= 100;
@@ -176,6 +179,7 @@ static struct monster *monster_target_monster(effect_handler_context_t *context)
 {
 	if (context->origin.what == SRC_MONSTER) {
 		struct monster *mon = cave_monster(cave, context->origin.which.monster);
+		if (!mon) return NULL;
 		if (mon->target.midx > 0) {
 			struct monster *t_mon = cave_monster(cave, mon->target.midx);
 			assert(t_mon);
@@ -308,6 +312,7 @@ static bool uncurse_object(struct object *obj, int strength, char *dice_string)
 	} else {
 		return false;
 	}
+	player->upkeep->notice |= (PN_COMBINE);
 	player->upkeep->update |= (PU_BONUS);
 	player->upkeep->redraw |= (PR_EQUIP | PR_INVEN);
 	return true;
@@ -669,6 +674,12 @@ bool effect_handler_DAMAGE(effect_handler_context_t *context)
 			/* Must be a cursed weapon */
 			struct object *obj = context->origin.which.object;
 			object_desc(killer, sizeof(killer), obj, ODESC_PREFIX | ODESC_BASE);
+			break;
+		}
+
+		case SRC_CHEST_TRAP: {
+			struct chest_trap *trap = context->origin.which.chest_trap;
+			strnfmt(killer, sizeof(killer), "%s", trap->msg_death);
 			break;
 		}
 
@@ -1254,17 +1265,6 @@ bool effect_handler_GAIN_EXP(effect_handler_context_t *context)
 	return true;
 }
 
-bool effect_handler_LOSE_EXP(effect_handler_context_t *context)
-{
-	if (!player_of_has(player, OF_HOLD_LIFE) && (player->exp > 0)) {
-		msg("You feel your memories fade.");
-		player_exp_lose(player, player->exp / 4, false);
-	}
-	context->ident = true;
-	equip_learn_flag(player, OF_HOLD_LIFE);
-	return true;
-}
-
 /**
  * Drain some light from the player's light source, if possible
  */
@@ -1493,11 +1493,12 @@ bool effect_handler_RECALL(effect_handler_context_t *context)
 
 bool effect_handler_DEEP_DESCENT(effect_handler_context_t *context)
 {
-	int i, target_increment, target_depth = player->max_depth;
+	int i;
 
 	/* Calculate target depth */
-	target_increment = (4 / z_info->stair_skip) + 1;
-	target_depth = dungeon_get_next_level(player->max_depth, target_increment);
+	int target_increment = (4 / z_info->stair_skip) + 1;
+	int target_depth = dungeon_get_next_level(player->max_depth,
+											  target_increment);
 	for (i = 5; i > 0; i--) {
 		if (is_quest(target_depth)) break;
 		if (target_depth >= z_info->max_depth - 1) break;
@@ -2538,7 +2539,9 @@ bool effect_handler_SUMMON(effect_handler_context_t *context)
 	/* Monster summon */
 	if (context->origin.what == SRC_MONSTER) {
 		struct monster *mon = cave_monster(cave, context->origin.which.monster);
-		int rlev = mon->race->level;
+		int rlev;
+
+		assert(mon);
 
 		/* Set the kin_base if necessary */
 		if (summon_type == summon_name_to_idx("KIN")) {
@@ -2546,6 +2549,7 @@ bool effect_handler_SUMMON(effect_handler_context_t *context)
 		}
 
 		/* Continue summoning until we reach the current dungeon level */
+		rlev = mon->race->level;
 		while ((val < player->depth * rlev) && (attempts < summon_max)) {
 			int temp;
 
@@ -2948,6 +2952,7 @@ bool effect_handler_TELEPORT_TO(effect_handler_context_t *context)
 
 	if (context->origin.what == SRC_MONSTER) {
 		mon = cave_monster(cave, context->origin.which.monster);
+		assert(mon);
 	}
 
 	/* Where are we coming from? */
@@ -3407,8 +3412,8 @@ bool effect_handler_EARTHQUAKE(effect_handler_context_t *context)
 			/* Get the location */
 			struct loc grid = loc_sum(pgrid, ddgrid_ddd[i]);
 
-			/* Skip non-empty grids */
-			if (!square_isempty(cave, grid)) continue;
+			/* Skip non-empty grids - allow pushing into traps and webs */
+			if (!square_isopen(cave, grid)) continue;
 
 			/* Important -- Skip grids marked for damage */
 			if (map[16 + grid.y - centre.y][16 + grid.x - centre.x]) continue;
@@ -3756,10 +3761,12 @@ bool effect_handler_BALL(effect_handler_context_t *context)
 	switch (context->origin.what) {
 		case SRC_MONSTER: {
 			struct monster *mon = cave_monster(cave, context->origin.which.monster);
-			int conf_level = monster_effect_level(mon, MON_TMD_CONF);
-			int accuracy = 100;
+			int conf_level, accuracy = 100;
 			struct monster *t_mon = monster_target_monster(context);
 
+			assert(mon);
+
+			conf_level = monster_effect_level(mon, MON_TMD_CONF);
 			while (conf_level) {
 				accuracy *= (100 - CONF_RANDOM_CHANCE);
 				accuracy /= 100;
@@ -4042,7 +4049,7 @@ bool effect_handler_LASH(effect_handler_context_t *context)
 	int rad = context->radius;
 
 	int flg = PROJECT_GRID | PROJECT_ITEM | PROJECT_KILL | PROJECT_ARC;
-	int type = PROJ_MISSILE;
+	int type;
 
 	struct loc target = loc(-1, -1);
 
@@ -4744,6 +4751,8 @@ bool effect_handler_SHAPECHANGE(effect_handler_context_t *context)
 {
 	struct player_shape *shape = player_shape_by_idx(context->subtype);
 	bool ident = false;
+
+	assert(shape);
 
 	/* Change shape */
 	player->shape = lookup_player_shape(shape->name);

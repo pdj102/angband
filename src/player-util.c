@@ -163,6 +163,9 @@ void take_hit(struct player *p, int dam, const char *kb_str)
 
 	/* Apply damage reduction */
 	dam -= p->state.dam_red;
+	if (p->state.perc_dam_red) {
+		dam -= (dam * p->state.perc_dam_red) / 100 ;
+	}
 	if (dam <= 0) return;
 
 	/* Disturb */
@@ -332,11 +335,16 @@ void player_regen_hp(struct player *p)
 	if (player_of_has(p, OF_IMPAIR_HP))
 		percent /= 2;
 
-	/* Various things interfere with physical healing */
-	if (p->timed[TMD_PARALYZED]) percent = 0;
-	if (p->timed[TMD_POISONED]) percent = 0;
-	if (p->timed[TMD_STUN]) percent = 0;
-	if (p->timed[TMD_CUT]) percent = 0;
+	/* Crowd fighters get a bonus */
+	if (player_has(p, PF_CROWD_FIGHT)) {
+		percent *= player_crowd_regeneration(p);
+	} else {
+		/* Various things interfere with physical healing */
+		if (p->timed[TMD_PARALYZED]) percent = 0;
+		if (p->timed[TMD_POISONED]) percent = 0;
+		if (p->timed[TMD_STUN]) percent = 0;
+		if (p->timed[TMD_CUT]) percent = 0;
+	}
 
 	/* Extract the new hitpoints */
 	new_chp = ((long)p->mhp) * percent + PY_REGEN_HPBASE;
@@ -528,7 +536,7 @@ bool player_attack_random_monster(struct player *p)
 		struct loc grid = loc_sum(player->grid, ddgrid_ddd[dir % 8]);
 		if (square_monster(cave, grid)) {
 			p->upkeep->energy_use = z_info->move_energy;
-			move_player(dir % 8, false);
+			move_player(ddd[dir % 8], false);
 			return true;
 		}
 	}
@@ -986,19 +994,23 @@ bool player_confuse_dir(struct player *p, int *dp, bool too)
 {
 	int dir = *dp;
 
-	if (p->timed[TMD_CONFUSED])
-		if ((dir == 5) || (randint0(100) < 75))
+	if (p->timed[TMD_CONFUSED]) {
+		if ((dir == 5) || (randint0(100) < 75)) {
 			/* Random direction */
 			dir = ddd[randint0(8)];
+		}
+
+	/* Running attempts always fail */
+	if (too) {
+		msg("You are too confused.");
+		return true;
+	}
 
 	if (*dp != dir) {
-		if (too)
-			msg("You are too confused.");
-		else
-			msg("You are confused.");
-
+		msg("You are confused.");
 		*dp = dir;
 		return true;
+	}
 	}
 
 	return false;
@@ -1211,6 +1223,56 @@ void player_place(struct chunk *c, struct player *p, struct loc grid)
 	p->upkeep->create_up_stair = false;
 }
 
+/**
+ * Calculates a weighted value of monsters that can see the player.
+ */
+static int player_crowd_weighting(struct player *p)
+{
+	int i, depth, wgt = 0;
+
+	/* Check we're playing */
+	if (!cave) return 0;
+	depth = cave->depth;
+
+	/* Count the monsters */
+	for (i = 1; i < cave_monster_max(cave); i++) {
+		/* Look at nearby living monsters */
+		struct monster *mon = cave_monster(cave, i);
+		if (!mon->race) continue;
+		if (mon->cdis > z_info->max_sight) continue;
+		if (!projectable(cave, mon->grid, p->grid, PROJECT_NONE)) continue;
+
+		/* Add up contributions */
+		wgt += depth < mon->race->level ? mon->race->level - depth : 1;
+	}
+
+	return wgt;
+}
+
+/**
+ * Calculates damage reduction due to crowd of monsters.
+ */
+int player_crowd_damage_reduction(struct player *p)
+{
+	int weight = player_crowd_weighting(p);
+
+	/* Use that as a percentage, up to a point */
+	if (weight > 50) {
+		weight = 50 + ((weight - 50) / 4);
+	}
+	return MIN(weight, 80);
+}
+
+/**
+ * Calculates regeneration due to crowd of monsters.
+ */
+int player_crowd_regeneration(struct player *p)
+{
+	int weight = player_crowd_weighting(p);
+
+	/* Make this a factor to regen */
+	return MAX(1, MIN(4, weight / 5));
+}
 
 
 /*

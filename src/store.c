@@ -1000,6 +1000,7 @@ void store_delete(struct store *s, struct object *obj, int amt)
 		object_delete(&obj);
 		pile_excise(&s->stock_k, known_obj);
 		object_delete(&known_obj);
+		assert(s->stock_num);
 		s->stock_num--;
 	}
 }
@@ -1754,6 +1755,7 @@ void do_cmd_retrieve(struct command *cmd)
 	struct object *obj, *known_obj, *picked_item;
 
 	struct store *store = store_at(cave, player->grid);
+	if (!store) return;
 
 	if (store->sidx != STORE_HOME) {
 		msg("You are not currently at home.");
@@ -1939,7 +1941,14 @@ void do_cmd_sell(struct command *cmd)
 	handle_stuff(player);
 
 	/* The store gets that (known) object */
-	store_carry(store, sold_item);
+	if (! store_carry(store, sold_item)) {
+		/* The store rejected it; delete. */
+		if (sold_item->known) {
+			object_delete(&sold_item->known);
+			sold_item->known = NULL;
+		}
+		object_delete(&sold_item);
+	}
 
 	event_signal(EVENT_STORECHANGED);
 	event_signal(EVENT_INVENTORY);
