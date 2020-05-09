@@ -1,0 +1,11 @@
+
+
+Compiling on windows
+
+	Install MinGW (http://www.mingw.org/)
+
+	In powershell run the command:
+	PS C:\Users\pdj10\Documents\_PROGRAMMING\AngbandPDJ102fork\angband\src> mingw32-make.exe -f makefile.win MINGW=yes
+	
+Save files
+	\AngbandPDJ102fork\angband\lib\user\save

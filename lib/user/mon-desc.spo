@@ -1,0 +1,629 @@
+Monster Spoilers for Angband 4.2.0-252-g77ce92fd
+------------------------------------------
+
+Name                                     Lev Rar   Spd      Hp  Ac  Visual Info
+----                                     --- ---   ---      --  --  -----------
+The filthy street urchin                   0   2    +0       3   1  Light Dark 
+The scrawny cat                            0   3    +0       2   1  Light Umber
+The scruffy little dog                     0   3    +0       2   1  Light Umber
+[U] Farmer Maggot                          0   4    +0     350  12    White 'h'
+The blubbering idiot                       0   1    +0       2   1  Light Slate
+The boil-covered wretch                    0   1    +0       2   1    Green 't'
+The village idiot                          0   1   +10      10   1  Light Green
+The pitiful-looking beggar                 0   1    +0       3   1  Light Umber
+The mangy-looking leper                    0   1    +0       1   1    Umber 't'
+The squint-eyed rogue                      0   1    +0       9   9     Blue 't'
+The singing, happy drunk                   0   1    +0       4   1   Yellow 't'
+The aimless-looking merchant               0   1    +0       6   1   Orange 't'
+The mean-looking mercenary                 0   1    +0      23  24      Red 't'
+The battle-scarred veteran                 0   1    +0      32  36  Light Blue 
+The red-hatted elf                         0   1    +0     100  12      Red 'h'
+[U] Father Christmas                       0   1   -10    1000  12  Light Green
+The fruit bat                              1   1   +10       4   3   Orange 'b'
+The grey mushroom patch                    1   1    +0       2   1    Slate ','
+The floating eye                           1   1    +0      11   7   Orange 'e'
+The giant white mouse                      1   1    +0       2   4    White 'r'
+The white icky thing                       1   1    +0       6   8    White 'i'
+The wild dog                               1   1    +0       3   3  Light Umber
+The giant white centipede                  1   1    +0       9  12    White 'c'
+The giant yellow centipede                 1   1    +0       7  14   Yellow 'c'
+The large white snake                      1   1   -10      11  36    White 'J'
+The clear icky thing                       1   1    +0       6   7    White 'i'
+The white worm mass                        1   1   -10      10   1    White 'w'
+The rock lizard                            1   1    +0       8   4  Light Umber
+The grey mold                              1   1    +0       2   1    Slate 'm'
+The soldier ant                            1   1    +0       6   4  Light Slate
+The small kobold                           1   1    +0       8  24   Yellow 'k'
+The shrieker mushroom patch                2   1    +0       1   1  Light Red '
+The yellow mushroom patch                  2   1    +0       1   1   Yellow ','
+The green worm mass                        2   1   -10      15   3    Green 'w'
+The metallic green centipede               2   1   +10      10   4    Green 'c'
+The blue yeek                              2   1    +0       7  16     Blue 'y'
+The kobold                                 2   1    +0      12  24  Light Green
+The white harpy                            2   1    +0       6  20    White 'H'
+The acolyte                                2   1    +0      18  15    Green 'p'
+The apprentice                             2   1    +0      15   9      Red 'p'
+The cutpurse                               2   1    +0      20  18     Blue 'p'
+The soldier                                2   1    +0      23  24    Umber 'p'
+The giant green frog                       2   1    +0       9   9    Green 'R'
+The cave spider                            2   1   +10       7  19   Purple 'S'
+The crow                                   2   2   +10       9  14    Slate 'B'
+The giant black ant                        2   1    +0      11  24  Light Dark 
+The wild cat                               2   2   +10       9  14  Light Umber
+The blubbering icky thing                  2   1    +0      18   4  Light Slate
+The white jelly                            2   1   +10      36   1    White 'j'
+The salamander                             2   1    +0      14  24   Orange 'R'
+[U] Fang, Farmer Maggot's Dog              2   1   +10      25  36   Yellow 'C'
+[U] Grip, Farmer Maggot's Dog              2   1   +10      25  36   Yellow 'C'
+The giant white louse                      3   1   +10       1   6    White 'I'
+The spotted mushroom patch                 3   1    +0       1   1   Orange ','
+The green ooze                             3   2   +10       8  19    Green 'j'
+The clear worm mass                        3   2   -10      10   1    White 'w'
+The scruffy looking hobbit                 3   1    +0       9   9     Blue 'h'
+The yellow worm mass                       3   2   -10      18   4   Yellow 'w'
+The radiation eye                          3   1    +0      11   7  Light Red '
+The giant white ant                        3   1    +0      11  19    White 'a'
+The metallic blue centipede                3   1   +10      12   7     Blue 'c'
+The poltergeist                            3   1   +20       6  18  Light Slate
+The yellow mold                            3   1    +0      36  12   Yellow 'm'
+The silver jelly                           3   2   +10      45   1  Light Slate
+The yellow jelly                           3   1   +10      45   1   Yellow 'j'
+The metallic red centipede                 3   1   +10      18  10      Red 'c'
+The kobold shaman                          3   1    +0      11  24      Red 'k'
+The black naga                             3   1    +0      27  60  Light Dark 
+[U] Sméagol                               3   2   +20     400  14  Light Blue 
+The silver mouse                           4   1    +0       2   4  Light Slate
+The giant white rat                        4   1    +0       3   8  Light Slate
+The blue worm mass                         4   1   -10      23  14     Blue 'w'
+The cave lizard                            4   1    +0      11  19    Umber 'R'
+The creeping copper coins                  4   3   -10      32  28    Umber '$'
+The tamer                                  4   1    +0      20  20   Yellow 'p'
+The blue jelly                             4   1    +0      54   1     Blue 'j'
+The large grey snake                       4   1   -10      27  61    Slate 'J'
+The gallant                                4   1    +0      27  24    White 'p'
+The scout                                  4   1    +0      27  12  Light Slate
+The kobold archer                          4   1    +0      24  24  Light Slate
+The red worm mass                          5   1   -10      23  14      Red 'w'
+The blue ooze                              5   1    +0       8  19     Blue 'j'
+The grey icky thing                        5   1    +0      18  14    Slate 'i'
+The skeleton kobold                        5   1    +0      23  39    White 's'
+The green glutton ghost                    5   1   +20       8  24    Green 'G'
+The rot jelly                              5   1   +10      90  36    Umber 'j'
+The giant white dragon fly                 5   2    +0      14  30    White 'F'
+The copperhead snake                       5   1    +0      14  30   Orange 'J'
+The giant green dragon fly                 5   2    +0      14  30    Green 'F'
+The green jelly                            5   1   +10      99   1    Green 'j'
+The disenchanter eye                       5   2   -10      32   7   Violet 'e'
+The large kobold                           5   1    +0      65  48     Blue 'k'
+The green naga                             5   1    +0      41  48    Green 'n'
+[U] Bullroarer the Hobbit                  5   3   +10      60  12  Light Umber
+The giant brown bat                        6   1   +20      14  18    Umber 'b'
+The purple mushroom patch                  6   2    +0       1   1  Light Purpl
+The snaga                                  6   1    +0      36  48  Light Umber
+The giant gold dragon fly                  6   2   +10      14  30   Yellow 'F'
+The creeping silver coins                  6   3   -10      54  36    Slate '$'
+The giant black dragon fly                 6   2   +10      14  30    Slate 'F'
+The rattlesnake                            6   1    +0      24  36      Red 'J'
+The brown mold                             6   1    +0      68  14    Umber 'm'
+The crow of Durthang                       7   3   +10      12  14  Light Dark 
+The zombified kobold                       7   1    +0      27  21    Slate 'z'
+The wood spider                            7   3   +10      11  19  Light Umber
+The bloodshot eye                          7   3    +0      45   7      Red 'e'
+The giant red frog                         7   1    +0      23  19      Red 'R'
+The lost soul                              7   2    +0       9  12  Light Blue 
+The green icky thing                       7   2    +0      23  14    Green 'i'
+The cave orc                               7   1    +0      55  48  Light Green
+The eastern dwarf                          7   2    +0      39  24  Light Dark 
+The red jelly                              7   1    +0     117   1      Red 'j'
+The night lizard                           7   2    +0      18  19     Blue 'R'
+The red naga                               7   2    +0      50  48      Red 'n'
+[U] Mughash the Kobold Lord                7   3    +0     150  30   Violet 'k'
+The terrified yeek                         8   1    +0      18  21    Umber 'y'
+The lemure                                 8   3    +0      65  48  Light Umber
+The orc tracker                            8   1    +0      55  40    Umber 'o'
+The ruffian                                8   2    +0      36  28    Slate 'p'
+The skeleton orc                           8   1    +0      45  54    White 's'
+The green mold                             8   1    +0      95  16    Green 'm'
+The giant salamander                       8   1    +0      24  60   Yellow 'R'
+[U] Lagduf, the Snaga                      8   2    +0     190  48   Yellow 'o'
+[U] Wormtongue, Agent of Saruman           8   1    +0     250  45  Light Blue 
+The giant grey rat                         9   1    +0       4  14    Slate 'r'
+The giant black louse                      9   1   +10       2   8  Light Dark 
+The black harpy                            9   1   +10      14  26  Light Dark 
+The giant red ant                          9   2    +0      18  40      Red 'a'
+The bloodshot icky thing                   9   3    +0      32  21      Red 'i'
+The cave bear                              9   1    +0      36  52    Umber 'q'
+The king cobra                             9   2    +0      44  45    Green 'J'
+The yeti                                   9   3    +0      55  36    White 'Y'
+The orc shaman                             9   1    +0      41  22      Red 'o'
+The baby white dragon                      9   2    +0      88  36    White 'd'
+The baby green dragon                      9   2    +0      88  36    Green 'd'
+The baby black dragon                      9   2    +0      88  36    Slate 'd'
+The baby red dragon                        9   2    +0      88  36      Red 'd'
+The baby blue dragon                       9   2    +0      88  36     Blue 'd'
+The baby gold dragon                       9   2    +0      88  36   Yellow 'd'
+[U] Brodda, the Easterling                 9   2    +0     210  37  Light Umber
+The clear mushroom patch                  10   2   +10       1   1    White ','
+The giant fruit fly                       10   3   +10       3  16  Light Green
+The panther                               10   2   +10      45  36    Umber 'f'
+The giant white tick                      10   2   -10      54 150    White 'S'
+The wolf                                  10   1   +10      21  45    Umber 'C'
+The creeping gold coins                   10   3   -10      81  43   Yellow '$'
+The hairy mold                            10   1    +0      68  22   Orange 'm'
+The giant spider                          10   2    +0      55  24  Light Viole
+The witch                                 10   2    +0      41  48  Light Purpl
+The disenchanter mold                     10   1    +0      72  30   Violet 'm'
+The tengu                                 10   1   +10      80  38  Light Red '
+The blacklock mage                        10   1   +10      39  24      Red 'h'
+The stonefoot warrior                     10   1    +0      60  24    Umber 'h'
+[U] Orfax, Son of Boldor                  10   3   +10     120  24  Light Blue 
+The pseudo-dragon                         10   2    +0     176  36   Orange 'd'
+[U] Grishnákh, the Hill Orc              10   3    +0     230  30   Yellow 'o'
+The zombified orc                         11   1    +0      50  36    Slate 'z'
+The hippogriff                            11   1    +0     100  21  Light Umber
+The baby multi-hued dragon                11   2    +0     114  36   Violet 'd'
+The drúadan mage                         11   2    +0      52  30      Red 'p'
+The old forest tree                       11   2   -10     800  50    Green 'l'
+The nether worm mass                      12   3   -10      23  22  Light Dark 
+The master yeek                           12   2    +0      60  28  Light Umber
+The white wolf                            12   1   +10      28  45    White 'C'
+The spotted jelly                         12   3   +10      59  27   Orange 'j'
+The zombified human                       12   1    +0      54  36    Slate 'z'
+The priest                                12   1    +0      54  26    Green 'p'
+The skeleton human                        12   1    +0      45  45    White 's'
+The black mamba                           12   3   +10      45  48  Light Dark 
+The tiger                                 12   2   +10      66  48   Orange 'f'
+The air spirit                            12   2   +20      36  48  Light Blue 
+The stegocentipede                        12   2   +10      59  36    Umber 'c'
+The warrior                               12   1    +0      54  51    Umber 'p'
+The moaning spirit                        12   2   +10      23  24    Umber 'G'
+The ironfist priest                       12   1   +10      39  45  Light Purpl
+The grape jelly                           12   3    +0     234   1  Light Purpl
+[U] Golfimbul, the Hill Orc Chief         12   3    +0     240  90  Light Yello
+The ochre jelly                           13   3   +10      59  21  Light Umber
+The killer brown beetle                   13   1    +0      59  72    Umber 'K'
+The orc archer                            13   1    +0      66  54      Mud 'o'
+The creeping mithril coins                13   3    +0      90  60  Light Blue 
+The ogre                                  13   2    +0      65  49  Light Umber
+The illusionist                           13   2   +10      54  15  Light Pink 
+The druid                                 13   2    +0      78  15   Yellow 'p'
+[U] Boldor, King of the Yeeks             13   3   +10     180  28  Light Purpl
+The giant flea                            14   3   +10       3  30    Slate 'I'
+The blue icky thing                       14   4   -10      35  30     Blue 'i'
+The warg                                  14   2   +10      36  30    Slate 'C'
+The flesh golem                           14   2    +0      54  36  Light Red '
+The lurker                                14   3    +0     176  30    White '.'
+[U] Ufthak of Cirith Ungol                14   3    +0     320  75    Green 'o'
+The magic mushroom patch                  15   2   +30       1  12  Light Blue 
+The giant tan bat                         15   2   +20      14  30  Light Umber
+The giant clear centipede                 15   2    +0      23  36    White 'c'
+The homunculus                            15   3    +0      36  48   Yellow 'u'
+The wererat                               15   2    +0      90  15  Light Dark 
+The light hound                           15   3    +0      21  36   Orange 'Z'
+The dark hound                            15   3    +0      21  36  Light Dark 
+The half-orc                              15   2    +0      88  60    Slate 'o'
+The clear hound                           15   3    +0      21  36    White 'Z'
+The clay golem                            15   2    +0      63  36  Light Umber
+The giant tarantula                       15   3   +10      80  48   Orange 'S'
+The griffon                               15   1    +0     135  22    Umber 'H'
+The black ogre                            15   2    +0     100  49  Light Dark 
+The guardian naga                         15   2    +0     144  78  Light Blue 
+The craban                                16   4   +10       9  14  Light Dark 
+The rogue                                 16   2    +5      62  48     Blue 'p'
+The quasit                                16   2    +0      27  36   Orange 'u'
+The grizzly bear                          16   2    +0      78  52  Light Umber
+The uruk                                  16   1    +0      70  75  Light Blue 
+The umber hulk                            16   1    +0     110  75  Light Umber
+The gelatinous cube                       16   4    +0     316  21  Light Green
+[U] Ulfast, Son of Ulfang                 16   3    +0     340  48  Light Umber
+The imp                                   17   2    +0      27  36    Green 'u'
+The water spirit                          17   2   +10      41  42     Blue 'E'
+The giant red scorpion                    17   1    +5      50  52      Red 'S'
+The earth spirit                          17   2   +10      59  60    Umber 'E'
+The forest troll                          17   1    +0     110  75    Green 'T'
+The 2-headed hydra                        17   2    +0     200  90    Umber 'M'
+[U] Nár, the Dwarf                       17   2    +0     450  84   Yellow 'h'
+The hummerhorn                            18   4   +10       3  16   Yellow 'I'
+The blink dog                             18   2   +10      36  24  Light Blue 
+The potion mimic                          18   3    +0      55  36    White '!'
+The energy hound                          18   3    +0      35  36     Blue 'Z'
+The fire hound                            18   3    +0      35  36      Red 'Z'
+The cold hound                            18   3    +0      35  36    White 'Z'
+The fire spirit                           18   2   +10      50  36      Red 'E'
+The shambling mound                       18   2    +0      70  19    Green ','
+The evil eye                              18   3    +0      68   7    Green 'e'
+The orc captain                           18   3    +0     110  88   Orange 'o'
+The blackguard                            18   1    +5     120  85    Slate 'p'
+The red mold                              19   1    +0      77  19      Red 'm'
+The stone golem                           19   2   -10     126  90  Light Slate
+[U] Gorbag, the Orc Captain               19   2    +0     400  72    Green 'o'
+[U] Shagrat, the Orc Captain              19   2    +0     400  72    Green 'o'
+[U] Old Man Willow                        19   3    +0    1000 100    Slate 'l'
+The Mirkwood spider                       20   2   +10      41  30    Green 'S'
+The blood falcon                          20   2   +30       6   2  Light Red '
+The paladin                               20   1    +0      90  48    White 'p'
+The ranger                                20   1    +0      90  60  Light Slate
+The sabre-tooth tiger                     20   2   +10     150  60   Yellow 'f'
+The werewolf                              20   1    +0     230  36  Light Dark 
+The sasquatch                             20   3   +10     200  60    Green 'Y'
+The air hound                             20   3    +0      68  36    Green 'Z'
+The earth hound                           20   3    +0      68  36    Umber 'Z'
+The water hound                           20   3    +0      68  36    Slate 'Z'
+The chimaera                              20   2    +0     160  22      Red 'H'
+The quylthulg                             20   1    +0      27   1   Yellow 'Q'
+The 3-headed hydra                        20   2   +10     300  97   Orange 'M'
+The dark dwarven lord                     20   2   +10     144  48    Slate 'h'
+[U] Bolg, Son of Azog                     20   4   +10     500  60  Light Purpl
+The blue dragon bat                       21   1   +20      10  39     Blue 'b'
+The mummified orc                         21   1    +0      86  33    White 'z'
+The scroll mimic                          21   3    +0      75  48    White '?'
+The fire vortex                           21   1    +0      45  36      Red 'v'
+The water vortex                          21   1    +0      45  36    Slate 'v'
+The cold vortex                           21   1    +0      45  36    White 'v'
+[U] Lugdush, the Uruk                     21   4    +0     640 108     Blue 'o'
+The neekerbreeker                         22   4   +10       5  21  Light Umber
+The giant yellow scorpion                 22   1    +0      54  45   Yellow 'S'
+The killer stag beetle                    22   1    +0      68  86    Green 'K'
+The iron golem                            22   2    +0     520 120    Slate 'g'
+The wyvern                                22   2   +10     203  79    Green 'd'
+[U] Uglúk, the Uruk                      22   3    +0     720 114     Blue 'o'
+The black ooze                            23   1   -20      27   7  Light Dark 
+The phase spider                          23   2   +10      27  30  Light Blue 
+The Easterling champion                   23   1    +0      90  60    Umber 'p'
+The red dragon bat                        23   1   +20      14  42      Red 'b'
+The giant silver ant                      23   1    +0      41 100  Light Slate
+The brigand                               23   2   +10      75  45     Blue 'p'
+[U] Azog, Enemy of the Dwarves            23   5   +10     900  96  Light Red '
+The banshee                               24   2   +10      27  28     Blue 'G'
+The mummified human                       24   1    +0     105  51    White 'z'
+The forest wight                          24   1    +0      54  36    Green 'W'
+The vampire bat                           24   2   +10      50  60  Light Dark 
+The werebear                              24   2    +0     325  75  Light Dark 
+[U] Ibun, Son of Mîm                     24   2    +0     820  96   Orange 'h'
+[U] Khîm, Son of Mîm                    24   2    +0     820  96   Orange 'h'
+[U] Sangahyando of Umbar                  24   2    +0     800  96  Light Umber
+[U] Angamaitë of Umbar                   24   2    +0     800  96  Light Umber
+The 4-headed hydra                        24   2   +10     350 105   Yellow 'M'
+The carrion crawler                       25   2    +0     130  60   Orange 'c'
+The nruling                               25   2   +10      50  16  Light Red '
+The stone troll                           25   1    +0     127  60  Light Slate
+The killer red beetle                     25   1    +0      90  90      Red 'K'
+The hill giant                            25   1    +0     240  54  Light Umber
+The necromancer                           25   2    +0     164  55  Light Purpl
+The pukelman                              25   3    +0     520 120      Mud 'g'
+The giant firefly                         26   4   +10       5  21      Red 'I'
+The abyss worm mass                       26   3   -10      35  25  Light Dark 
+The disenchanter bat                      26   4   +20      27  42   Violet 'b'
+The cave ogre                             26   2    +0     150  49    Umber 'O'
+The giant fire tick                       26   1    +0      72 120  Light Red '
+The ghoul                                 26   2    +0      83  36  Light Umber
+The displacer beast                       26   2    +0     138 150  Light Dark 
+The giant grey ant                        26   1    +0      86 200    Slate 'a'
+The wolf chieftain                        26   5   +10     422  24  Light Dark 
+[U] Ulwarth, Son of Ulfang                26   4    +0     850  48  Light Umber
+The creeping adamantite coins             27   3   +10     260  60  Light Green
+The killer fire beetle                    27   1    +0      99  64  Light Red '
+The shimmering mold                       27   1    +0     144  36     Blue 'm'
+The troll scavenger                       27   1    +0     137  90   Orange 'T'
+The vampire                               27   1    +0     163  67  Light Slate
+The vibration hound                       27   4    +0     138  36   Yellow 'Z'
+The nexus hound                           27   4    +0     138  36  Light Purpl
+The ogre shaman                           27   2    +0     163  82  Light Green
+The gorgimaera                            27   2    +0     263  82   Orange 'H'
+[U] Mîm, Betrayer of Turin               27   4   +10    1100  96  Light Pink 
+The spirit naga                           28   2    +0     240  90    White 'n'
+The bat of Gorgoroth                      28   3   +10     110  36    Green 'b'
+The spectator                             28   2    +0     171   1  Light Blue 
+The mage                                  28   1    +0      68  48      Red 'p'
+The frost giant                           28   1    +0     256  60    White 'P'
+The snow troll                            28   1    +0     132  67    White 'T'
+The mind flayer                           28   1    +0     132  72  Light Purpl
+The black knight                          28   1   +10     165 105    Slate 'p'
+The basilisk                              28   3   +10     310 108    Slate 'R'
+[U] Uldor the Accursed                    28   4    +0    1000  84  Light Umber
+The 5-headed hydra                        28   2   +10     450 120    Green 'M'
+[U] Draebor, the Imp                      28   5   +10     520  75   Violet 'u'
+[U] Beorn, the Shape-Changer              28   3    +0    1400  72   Purple 'p'
+[U] Beorn, the Mountain Bear              28   0   +10       0  72   Purple 'q'
+The energy vortex                         29   1    +0      65  36     Blue 'v'
+The ring mimic                            29   3   +10     180  72    White '='
+The purple worm                           29   3    +0     293  78  Light Purpl
+The catoblepas                            29   2    +0     165  66    Green 'q'
+The giant black scorpion                  29   3   +10     189  60    Slate 'S'
+The young blue dragon                     29   1    +0     237  60     Blue 'd'
+The green elf archer                      29   3   +10     210 112  Light Slate
+The young green dragon                    29   1    +0     237  60    Green 'd'
+The young white dragon                    29   1    +0     237  60    White 'd'
+The giant blue ant                        30   2    +0      36  75     Blue 'a'
+The giant army ant                        30   3   +10      67  60   Orange 'a'
+The ghast                                 30   3   +10     165  60    Umber 'z'
+The fire giant                            30   1    +0     289  72      Red 'P'
+The skeleton troll                        30   1    +0     110  82    White 's'
+The killer slicer beetle                  30   2    +0     138  92   Yellow 'K'
+The manticore                             30   2   +10     220  22   Yellow 'H'
+The grave wight                           30   1    +0      66  60     Blue 'W'
+The mithril golem                         30   4    +0     640 150  Light Blue 
+The ogre chieftain                        30   5   +10     240  66     Blue 'O'
+[U] Bert the Stone Troll                  30   7   +10    1100  84    Slate 'T'
+[U] Bill the Stone Troll                  30   7   +10    1100  84    Slate 'T'
+[U] Tom the Stone Troll                   30   7   +10    1100  84    Slate 'T'
+The death watch beetle                    31   3    +0     163  72  Light Dark 
+The ghost                                 31   1   +10      59  36    White 'G'
+The young black dragon                    31   1    +0     264  72    Slate 'd'
+The young gold dragon                     31   1    +0     264  72   Yellow 'd'
+The young red dragon                      31   1    +0     264  72      Red 'd'
+The huorn                                 31   1    +5    1000  80  Light Green
+The memory moss                           32   3    +0       2   1      Red ','
+The doombat                               32   2   +20     180 112  Light Red '
+The nexus quylthulg                       32   1    +0      65   1  Light Purpl
+The southron assassin                     32   2   +10      85  72  Mustard 'p'
+The ogre mage                             32   2    +5     220  60  Light Blue 
+The serpent of the brownlands             32   2   +10     150  90    Umber 'J'
+The young multi-hued dragon               32   1    +0     281  72   Violet 'd'
+The stone giant                           33   1    +0     333  90  Light Slate
+The water elemental                       33   2    +0     113  48     Blue 'E'
+The skeleton etten                        33   1    +0     396  75    White 's'
+The fire elemental                        33   2    +0     135  60      Red 'E'
+The cave troll                            33   1    +0     156  60    Umber 'T'
+The barrow wight                          33   3    +0      83  60  Light Purpl
+The mystic                                33   3   +10     308  60   Orange 'p'
+The drúadan druid                        33   3   +10     240 112   Yellow 'p'
+The shadow drake                          33   3    +0     264  84  Light Green
+The ethereal drake                        33   3    +0     352  84   Orange 'd'
+The crystal drake                         33   3    +0     396  84    Umber 'd'
+The law drake                             33   3    +0     440  84  Light Blue 
+The chaos drake                           33   3    +0     440  84   Violet 'd'
+The balance drake                         33   3    +0     528  84  Light Purpl
+The troll priest                          34   1    +0     340  75  Light Green
+The shade                                 34   3   +10     147  36  Light Dark 
+The master thief                          34   2   +20      99  45     Blue 'p'
+The earth elemental                       34   2   -10     165  90    Umber 'E'
+The air elemental                         34   2   +10      90  60  Light Blue 
+The troll blackguard                      34   2    +0     340  60  Light Umber
+The lich                                  34   2    +0     264  72   Orange 'L'
+The Maia                                  34   4    +0     528  81  Light Blue 
+[U] Ulfang the Black                      34   5   +10    1000 108  Light Umber
+The Eog golem                             34   4   -10    1050 187    Umber 'g'
+The chest mimic                           35   4    +0     308  48    Slate '~'
+The wereworm                              35   3   -10     200 105   Purple 'w'
+The invisible stalker                     35   3   +20     124  69   Yellow 'E'
+The giant fire ant                        35   1    +0     176  58  Light Red '
+The hill troll                            35   1    +0     316  60      Mud 'T'
+The gravity hound                         35   4    +0     193  36  Light Slate
+The inertia hound                         35   4    +0     193  36  Light Slate
+The impact hound                          35   4    +0     193  36    Umber 'Z'
+The silent watcher                        35   3    +0    1040  96      Red 'g'
+[U] Lokkak, the Ogre Chieftain            35   2   +10    1500 120   Violet 'O'
+The mûmak                                35   2    +0     495  82    Slate 'q'
+The ooze elemental                        36   3    +0      72 120    Green 'E'
+The smoke elemental                       36   3   +10      83 120  Light Dark 
+The olog                                  36   1    +5     440  60   Yellow 'T'
+The cloud giant                           36   1    +0     368  90     Blue 'P'
+The trapper                               36   3   +10     528  90    White '.'
+The gauth                                 36   2    +0     264  75  Light Dark 
+The dúnadan of Angmar                    36   2   +10     246  75  Light Purpl
+The xorn                                  36   2    +0     140  96    Umber 'X'
+The demonologist                          36   2   +10     246  75  Light Red '
+The bodak                                 36   2    +0     193  81      Red 'u'
+The master vampire                        36   1    +0     299  72    Green 'V'
+The colossus                              36   4   -10    2640 180  Light Green
+The colbran                               36   2   +10     520 120     Blue 'g'
+[U] Lorgan, Chief of the Easterlings      36   2   +10    1800 120  Light Purpl
+The spectre                               37   3   +10     167  36  Light Umber
+The mummified troll                       37   1    +0     207  75    White 'z'
+The ice elemental                         37   3    +0     193  90    White 'E'
+The shardstorm                            37   1   +10     176  14    Umber 'v'
+The mountain troll                        37   3    +0     660 120      Red 'T'
+The nexus vortex                          37   1   +10     176  48  Light Purpl
+The plasma vortex                         37   1   +10     176  48  Light Red '
+The killer iridescent beetle              37   2    +0     330  90     Blue 'K'
+The magma elemental                       37   3    +0     193 105   Orange 'E'
+The emperor wight                         37   2    +0     334  48      Red 'W'
+The abyss spider                          38   3   +10     264  54  Light Green
+The white wraith                          38   1   +10     450  48    White 'W'
+The will o' the wisp                      38   4   +20     176 180  Light Slate
+The mummified chieftain                   38   3    +5     299 102   Yellow 'z'
+The time vortex                           38   4   +20     176  48  Light Blue 
+The shimmering vortex                     38   4   +30     176  48   Orange 'v'
+The death knight                          38   1   +10     528 120  Light Dark 
+The etten                                 38   3    +0    1320 120     Blue 'T'
+[U] Castamir the Usurper                  38   5   +10     880 108  Light Viole
+The southron archer                       39   4   +10     209 114  Mustard 'p'
+The mature white dragon                   39   1    +5     700  84    White 'd'
+The mature blue dragon                    39   1    +5     700  84     Blue 'd'
+The mature green dragon                   39   1    +5     700  84    Green 'd'
+The 6-headed hydra                        39   2   +10     550 135  Light Green
+The night mare                            39   3   +10    1320 102  Light Green
+The disenchanter worm mass                40   3   -10      45   6   Violet 'w'
+The phantom                               40   3   +10     260  36  Light Purpl
+The spirit troll                          40   3    +0     880 108  Light Green
+The giant roc                             40   3    +0     560  84    Umber 'B'
+The death quasit                          40   3   +20     387  96  Light Dark 
+The xaren                                 40   1   +10     280  96    Slate 'X'
+The patriarch                             40   2   +10     457  90  Light Green
+The vrock                                 40   2    +0     352  75    Slate 'U'
+The enchantress                           40   4   +20     457  72  Light Red '
+The minotaur                              40   2   +20     550  30    Slate 'H'
+The sorcerer                              40   2   +20     457  72  Light Red '
+The 7-headed hydra                        40   2   +10     650 114      Red 'M'
+The troll chieftain                       40   5   +10     792  60  Light Purpl
+The beholder                              40   3   +10    1400  96  Light Umber
+The mature red dragon                     41   1    +5     740  96      Red 'd'
+The mature gold dragon                    41   1    +5     740  96   Yellow 'd'
+The mature black dragon                   41   1    +5     740  96    Slate 'd'
+The ranger chieftain                      41   2   +10     880  72  Light Slate
+The stiffbeard sorcerer                   41   2   +20     700  84  Light Red '
+[U] Kavlax the Many-Headed                41   3   +10    1300 102  Light Dark 
+[U] Gorlim, Betrayer of Barahir           41   3   +10    1600 144  Blue Slate 
+The master lich                           41   2   +10    1584  96      Red 'L'
+The hellhound                             42   2   +10     352 120      Red 'C'
+[U] The Queen Ant                         42   2   +10    1500 120   Violet 'a'
+The black-hearted huorn                   42   1   +10    1200 120      Mud 'l'
+[U] Rogrog the Black Troll                42   3   +10    2000 105  Light Dark 
+The multi-hued hound                      43   6    +0     220  48   Violet 'Z'
+The Maia of Mandos                        43   4   +10    1250  81    Slate 'A'
+The Maia of Nienna                        43   4   +10    1250  81  Light Slate
+The mature multi-hued dragon              43   1    +5    1000  96   Violet 'd'
+The glabrezu                              43   2    +0     616  60  Light Umber
+[U] Vargo, Tyrant of Fire                 43   3   +10    2400  75  Light Red '
+[U] Waldern, King of Water                43   3   +10    2500 120  Light Viole
+[U] Quaker, Master of Earth               43   3    +0    2800 145  Light Umber
+[U] Ariel, Queen of Air                   43   3   +20    2700  75  Deep Light 
+The dread                                 44   2   +10     263  36   Orange 'G'
+The 8-headed hydra                        44   2   +10     950 120  Light Red '
+The killer white beetle                   45   2   +10     800 106    White 'K'
+The cyclops                               45   2   +10    1050 144    Umber 'P'
+The grey wraith                           45   1   +10     650  60    Slate 'W'
+The berserker                             45   2   +10    1320  96    Umber 'p'
+The rotting quylthulg                     45   1   +10     420   1    Umber 'Q'
+The draconic quylthulg                    45   1   +10     420   1    Green 'Q'
+The demonic quylthulg                     45   1   +10     420   1      Red 'Q'
+The nalfeshnee                            45   2    +0     792  60      Red 'U'
+The undead beholder                       45   3   +10    2376 120    Umber 'e'
+The greater basilisk                      45   2   +10    1010 120  Light Dark 
+The vampire lord                          46   1   +10    1400  84     Blue 'V'
+The lord of Carn Dûm                     46   2   +10     557  90  Magenta-Pin
+The death mold                            47   1   +30    1050  72  Light Dark 
+The marilith                              47   2   +10    1232 112   Yellow 'U'
+The ancient spider                        48   5   +10    1050  78      Red 'S'
+The winged horror                         48   3   +10    1013  96   Purple 'B'
+The gorgon                                48   2   +10    1500 120  Light Green
+The storm giant                           49   1   +10    1200 110  Light Blue 
+The black wraith                          49   2   +10     840  66  Light Dark 
+The lesser Balrog                         49   2   +10    1760  75   Purple 'U'
+[U] Eöl, the Dark Elf                    49   2   +20    2400 150   Violet 'h'
+The shadow                                50   3   +10     175  36  Light Dark 
+The ancient blue dragon                   50   1   +10    1500 108     Blue 'D'
+The ancient white dragon                  50   1   +10    1500 108    White 'D'
+The ancient green dragon                  50   1   +10    1500 108    Green 'D'
+The master mystic                         50   3   +20     968  72   Orange 'p'
+The death drake                           50   2   +10    1950 120  Light Green
+The great crystal drake                   50   2   +10    1950 120    Umber 'D'
+The ethereal dragon                       50   2   +10    1950 120   Orange 'D'
+[U] The Balrog of Moria                   50   3   +20    3000 150   Violet 'U'
+The ancient black dragon                  51   1   +10    1560 108    Slate 'D'
+The ancient red dragon                    51   1   +10    1560 108      Red 'D'
+The ancient gold dragon                   51   1   +10    1560 108   Yellow 'D'
+The nether hound                          51   4   +10     330 120  Light Green
+The time hound                            51   4   +20     330 120  Light Blue 
+The plasma hound                          51   4   +10     330 120  Light Red '
+[U] Harowen the Black Hand                51   3   +30    2500 108  Deep Light 
+The Maia of Oromë                        52   4   +10    2000  96    White 'A'
+The hasty ent                             52   1   +10    3000 120     Teal 'l'
+[U] Itangast the Fire Drake               52   2   +10    2200 144  Light Red '
+The chaos vortex                          53   3   +10     315  96   Violet 'v'
+The hezrou                                53   3   -10    1850  60    Green 'U'
+The ancient multi-hued dragon             53   1   +10    2400 120   Violet 'D'
+[U] Scatha the Worm                       53   2   +10    2500 156  Light Slate
+The nether wraith                         54   2   +10    1000  66  Light Green
+The dreadmaster                           54   2   +10    1056 120   Yellow 'G'
+The drolem                                54   3   +10    2200 195    Green 'g'
+The demilich                              54   2   +10    2816 150  Light Umber
+[U] The Phoenix                           54   3   +10    3600 156      Red 'B'
+The barbazu                               55   4   +10     700  90  Light Green
+The dracolich                             55   2   +10    3080 144  Light Green
+The dracolisk                             55   2   +10    3080 144  Magenta-Pin
+[U] Shelob, Spider of Darkness            55   3   +10    3500 180  Light Dark 
+[U] Ar-Pharazôn the Golden               55   1   +20    4000  54   Yellow 'p'
+The lesser titan                          56   3   +10    2100  96   Yellow 'P'
+The 9-headed hydra                        57   2   +10    1200 168  Light Purpl
+The hand druj                             57   2   +20     528 132   Yellow 's'
+The grand master mystic                   57   3   +20    1936  96   Orange 'p'
+[U] Baphomet the Minotaur Lord            58   4   +20    4700 144   Violet 'H'
+The elder vampire                         59   3   +10    2640 108      Red 'V'
+[U] Fundin Bluecloak                      59   2   +20    5000 234  Deep Light 
+The great earth elemental                 60   0   +10       0 145    Umber 'E'
+The Maia of Yavanna                       60   4   +10    3500  90    Green 'A'
+The Maia of Aulë                         60   4   +10    3500 120    Umber 'A'
+The aether vortex                         60   4   +20     420  48   Violet 'v'
+[U] Gilim, the Giant of Eruman            60   3   +10    4000  96    White 'P'
+[U] Saruman of Many Colours               60   1   +10    5000 120   Violet 'A'
+The nightwing                             61   3   +10    1300 144  Light Viole
+The bile demon                            61   2   +10    2464 135  Light Red '
+The dreadlord                             62   2   +10    2640 180      Red 'G'
+[U] Smaug the Golden                      62   2   +10    4200 195  Light Red '
+The werewolf of Sauron                    63   2   +10    2200  88  Light Green
+The spider of Gorgoroth                   63   3   +10    4000 180  Light Purpl
+The chaos hound                           64   4   +10     930 120   Violet 'Z'
+The archlich                              64   2   +10    3520 180  Light Blue 
+The great water elemental                 65   0   +10       0 120     Blue 'E'
+The Maia of Ulmo                          65   4   +10    4700  90     Blue 'A'
+The Fëanorian raider                     65   2   +10    1200 110  Mustard 'h'
+The osyluth                               65   2   +20    2288 112  Light Slate
+[U] The Mouth of Sauron                   65   3   +20    7000 120   Violet 'p'
+The eye druj                              66   2   +20    1080 108      Red 's'
+The greater titan                         66   3   +10    3344 150   Orange 'P'
+[U] Tevildo, Prince of Cats               66   3   +20    4800 240   Violet 'f'
+The beholder hive-mother                  67   3   +10    3080  96     Blue 'e'
+[U] Thuringwethil, the Vampire Messenger  67   4   +20    5000 174   Violet 'V'
+The jabberwock                            68   3   +20    2816 187   Violet 'H'
+The bone golem                            68   3   +10    3080 255  Light Dark 
+[U] Tselakus, the Dreadlord               68   2   +20    6500 180  Light Red '
+The hound of Tindalos                     69   5   +20     480 120     Teal 'Z'
+The gelugon                               69   3   +20    3080 150    White 'U'
+The nightcrawler                          69   3   +10    2440 192  Light Dark 
+[U] Nan, the Giant                        69   3   +10    3344 150   Orange 'P'
+The great swamp wyrm                      70   2   +10    4200 225    Green 'D'
+The great storm wyrm                      70   2   +10    4200 225     Blue 'D'
+The great ice wyrm                        70   2   +10    4200 225    White 'D'
+The Maia of Manwë                        71   4   +20    5000 120  Light Blue 
+The greater rotting quylthulg             71   2   +10    1320   1  Light Umber
+The greater demonic quylthulg             71   2   +10    1320   1  Light Red '
+The greater draconic quylthulg            71   2   +10    1320   1  Light Green
+The Maia of Varda                         71   4   +20    5000 110   Yellow 'A'
+The horned reaper                         72   3   +20    3344 180  Light Blue 
+[U] Ossë, Herald of Ulmo                 72   3   +20    6000 204    White 'A'
+The nightwalker                           73   3   +20    1400 170   Violet 'W'
+The great bile wyrm                       73   2   +10    4500 225    Slate 'D'
+The great wyrm of thunder                 73   2   +10    4500 225   Yellow 'D'
+The great hell wyrm                       73   2   +10    4500 225      Red 'D'
+[U] Omarax, the Eye Tyrant                73   3   +20    6500  96   Violet 'e'
+The aether hound                          74   5   +20    1230 120   Violet 'Z'
+The skull druj                            74   2   +20    1540 144   Orange 's'
+The black reaver                          74   3   +10    3960 255  Light Dark 
+The bronze golem                          75   3   +10    3520 255   Orange 'g'
+The great wyrm of chaos                   75   2   +10    3960 255   Violet 'D'
+The great wyrm of law                     75   2   +10    3960 255  Light Blue 
+[U] Ungoliant, the Unlight                75   1   +20   13000 240  Light Dark 
+[U] Glaurung, Father of the Dragons       75   3   +20    7500 210   Violet 'D'
+The master quylthulg                      76   2   +10    2640   1  Light Blue 
+[U] Makar, the Warrior                    76   3   +10    6000 192  Light Dark 
+The pit fiend                             77   3   +20    3520 180   Orange 'U'
+[U] Feagwath, the Undead Sorcerer         77   2   +20    5000 127   Violet 'L'
+[U] Uvatha the Horseman                   77   3   +10    4200  72   Purple 'W'
+The serpent of chaos                      78   3   +20     900 145   Yellow 'J'
+[U] Adunaphel the Quiet                   78   3   +10    4300  72   Purple 'W'
+[U] Qlzqqlzuup, the Emperor Quylthulg     79   3   +20    5000   1   Violet 'Q'
+[U] Akhorahil the Blind                   79   3   +10    4400  84   Purple 'W'
+[U] Wiruin, the Maelstrom                 80   2   +30    3500  10  Blue Slate 
+The fury                                  80   2   +20    4000 120     Teal 'U'
+The great wyrm of annihilation            80   2   +10    5000 255   Violet 'D'
+The sky dragon                            80   2   +10    5000 255  Light Blue 
+[U] Ren the Unclean                       80   3   +10    4500  84   Purple 'W'
+[U] Maeglin, the Traitor of Gondolin      81   2   +20    6000 144   Purple 'h'
+[U] Ji Indur Dawndeath                    81   3   +10    4600  84   Purple 'W'
+[U] Pazuzu, Lord of Air                   82   2   +30    5500 150  Deep Light 
+The great wyrm of balance                 82   2   +10    5200 255  Light Purpl
+The great wyrm of many colours            82   2   +10    5200 255   Violet 'D'
+[U] Dwar, Dog Lord of Waw                 82   3   +10    4700 108   Purple 'W'
+[U] Hoarmurath of Dir                     83   3   +10    4800 120   Purple 'W'
+[U] Draugluin, Sire of All Werewolves     83   2   +20    7000 135      Mud 'C'
+[U] Khamûl, the Black Easterling         84   3   +10    4900 120   Purple 'W'
+[U] Cantoras, the Skeletal Lord           84   2   +30    7500 180  Light Slate
+The greater Balrog                        85   3   +20    4500 210  Light Purpl
+[U] Ancalagon the Black                   85   3   +20   10000 255  Light Dark 
+[U] The Witch-King of Angmar              85   3   +20    5000 144   Purple 'W'
+[U] The Tarrasque                         86   2   +20    8500 222   Violet 'R'
+[U] Meássë, the Bloody                  87   3   +10    7000 180      Red 'A'
+[U] Lungorthin, the Balrog of White Fire  88   2   +20    7000 187   Violet 'U'
+[U] Huan, Wolfhound of the Valar          90   1   +20    8000 192  Light Slate
+[U] Carcharoth, the Jaws of Thirst        90   1   +20    8000 192   Purple 'C'
+[U] Vecna, the Emperor Lich               92   3   +20    6000 120   Purple 'L'
+The storm of Unmagic                      95   3   +30     600  48   Violet 'v'
+[U] Gothmog, the High Captain of Balrogs  95   1   +20    8000 168   Violet 'U'
+[U] Vampire-Sauron                        99   0   +20       0 164   Purple 'V'
+[U] Wolf-Sauron                           99   0   +30       0 164   Purple 'C'
+[U] Serpent-Sauron                        99   0   +20       0 164   Purple 'J'
+[Q] Sauron, the Sorcerer                  99   1   +20    8000 192   Purple 'A'
+[Q] Morgoth, Lord of Darkness            100   1   +30   20000 180  Light Dark 
+
