@@ -29,6 +29,7 @@
 #include "init.h"
 #include "ui-display.h"
 #include "ui-game.h"
+#include "ui-init.h"
 #include "ui-input.h"
 #include "ui-keymap.h"
 #include "ui-knowledge.h"
@@ -77,6 +78,9 @@ void textui_init(void)
 
 		/* Hack -- Turn off the cursor */
 		(void)Term_set_cursor(false);
+
+		/* Update terminals for preference changes. */
+		(void) Term_xtra(TERM_XTRA_REACT, 0);
 	}
 
 	/* initialize window options that will be overridden by the savefile */
@@ -108,4 +112,5 @@ void textui_cleanup(void)
 
 	keymap_free();
 	textui_prefs_free();
+	textui_knowledge_cleanup();
 }

@@ -6,8 +6,8 @@
 #
 
 NAME = Angband
-VERSION = 4.2.0
-COPYRIGHT = (c) 1995-2019 Angband contributors
+VERSION = 4.2.2
+COPYRIGHT = (c) 1995-2021 Angband contributors
 PROGNAME = angband
 
 HEADERS = \
@@ -71,7 +71,7 @@ SNDSDLFILES = snd-sdl.o
 TESTMAINFILES = main-test.o
 
 WINMAINFILES = \
-        win/angband.res \
+        win/$(PROGNAME).res \
         main-win.o \
         win/readdib.o \
         win/readpng.o \
@@ -90,9 +90,12 @@ ANGFILES = \
 	cmd-misc.o \
 	cmd-obj.o \
 	cmd-pickup.o \
+	cmd-spoil.o \
+	cmd-wizard.o \
 	datafile.o \
 	debug.o \
 	effects.o \
+	effects-info.o \
 	game-event.o \
 	game-input.o \
 	game-world.o \
@@ -163,6 +166,7 @@ ANGFILES = \
 	score.o \
 	save.o \
 	savefile.o \
+	save-charoutput.o \
 	sound-core.o \
 	source.o \
 	store.o \
@@ -174,6 +178,7 @@ ANGFILES = \
 	ui-curse.o \
 	ui-death.o \
 	ui-display.o \
+	ui-effect.o \
 	ui-entry.o \
 	ui-entry-combiner.o \
 	ui-entry-renderers.o \
@@ -199,16 +204,20 @@ ANGFILES = \
 	ui-score.o \
 	ui-signals.o \
 	ui-spell.o \
+	ui-spoil.o \
 	ui-store.o \
 	ui-target.o \
 	ui-term.o \
 	ui-visuals.o \
+	ui-wizard.o \
 	wiz-debug.o \
 	wiz-spoil.o \
 	wiz-stats.o \
 
 STATSMAINFILES = main-stats.o \
         stats/db.o
+
+SPOILMAINFILES = main-spoil.o
 
 buildid.o: $(ANGFILES)
 ANGFILES += buildid.o

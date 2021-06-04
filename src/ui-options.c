@@ -28,7 +28,6 @@
 #include "object.h"
 #include "player-calcs.h"
 #include "ui-display.h"
-#include "ui-help.h"
 #include "ui-input.h"
 #include "ui-keymap.h"
 #include "ui-knowledge.h"
@@ -143,10 +142,34 @@ static bool option_toggle_handle(struct menu *m, const ui_event *event,
 			next = true;
 		} else if (event->key.code == 't' || event->key.code == 'T') {
 			option_set(option_name(oid), !player->opts.opt[oid]);
-		} else if (event->key.code == '?') {
+		} else if (event->key.code == 's' || event->key.code == 'S') {
+			char dummy;
+
 			screen_save();
-			show_file(format("option.txt#%s", option_name(oid)), NULL, 0, 0);
+			if (options_save_custom_birth(&player->opts)) {
+				get_com("Successfully saved.  Press any key to continue.", &dummy);
+			} else {
+				get_com("Save failed.  Press any key to continue.", &dummy);
+			}
 			screen_load();
+		/* Only allow restore from custom defaults at birth. */
+		} else if ((event->key.code == 'r' || event->key.code == 'R') &&
+				m->flags == MN_DBL_TAP) {
+			screen_save();
+			if (options_restore_custom_birth(&player->opts)) {
+				screen_load();
+				menu_refresh(m, false);
+			} else {
+				char dummy;
+
+				get_com("Restore failed.  Press any key to continue.", &dummy);
+				screen_load();
+			}
+		/* Only allow reset to maintainer's defaults at birth. */
+		} else if ((event->key.code == 'm' || event->key.code == 'M') &&
+				m->flags == MN_DBL_TAP) {
+			options_reset_birth(&player->opts);
+			menu_refresh(m, false);
 		} else {
 			return false;
 		}
@@ -184,17 +207,19 @@ static void option_toggle_menu(const char *name, int page)
 	struct menu *m = menu_new(MN_SKIN_SCROLL, &option_toggle_iter);
 
 	/* for all menus */
-	m->prompt = "Set option (y/n/t), '?' for information";
-	m->cmd_keys = "?YyNnTt";
+	m->prompt = "Set option (y/n/t), select with movement keys or index";
+	m->cmd_keys = "YyNnTt";
 	m->selections = "abcdefghijklmopqrsuvwxz";
 	m->flags = MN_DBL_TAP;
 
 	/* We add 10 onto the page amount to indicate we're at birth */
 	if (page == OPT_PAGE_BIRTH) {
-		m->prompt = "You can only modify these options at character birth. '?' for information";
-		m->cmd_keys = "?";
+		m->prompt = "You can only modify these options at character birth.";
+		m->cmd_keys = "";
 		m->flags = MN_NO_TAGS;
 	} else if (page == OPT_PAGE_BIRTH + 10) {
+		m->prompt = "Set option (y/n/t), 's' to save, 'r' to restore, 'm' to reset";
+		m->cmd_keys = "YyNnTtSsRrMm";
 		page -= 10;
 	}
 
@@ -286,7 +311,7 @@ static void do_cmd_options_win(const char *name, int row)
 
 			/* Display the windows */
 			for (j = 0; j < ANGBAND_TERM_MAX; j++) {
-				char c = '.';
+				wchar_t c = L'.';
 
 				a = COLOUR_WHITE;
 
@@ -294,7 +319,7 @@ static void do_cmd_options_win(const char *name, int row)
 				if ((i == y) && (j == x)) a = COLOUR_L_BLUE;
 
 				/* Active flag */
-				if (new_flags[j] & (1L << i)) c = 'X';
+				if (new_flags[j] & (1L << i)) c = L'X';
 
 				/* Flag value */
 				Term_putch(35 + j * 5, i + 5, a, c);
@@ -910,6 +935,42 @@ static void do_cmd_delay(const char *name, int row)
 	screen_load();
 }
 
+/**
+ * Set sidebar mode
+ */
+static void do_cmd_sidebar_mode(const char *name, int row)
+{
+	char tmp[20] = "";	
+	const char *names[SIDEBAR_MAX] = {"Left", "Top", "None"};
+	struct keypress cx = KEYPRESS_NULL;
+
+	screen_save();
+
+	while (true) {	
+
+		// Get the name
+		my_strcpy(tmp, names[SIDEBAR_MODE % SIDEBAR_MAX], sizeof(tmp));
+
+		/* Prompt */
+		prt("Command: Sidebar Mode", 20, 0);
+
+		prt("ESC: go back, other: cycle", 22, 0);
+
+		prt(format("Current mode: %s", tmp), 21, 0);
+
+		/* Get a command */
+		cx = inkey();
+
+		/* All done */
+		if (cx.code == ESCAPE) break;
+
+		// Cycle
+		SIDEBAR_MODE = (SIDEBAR_MODE + 1) % SIDEBAR_MAX;
+	}
+
+	screen_load();
+}
+
 
 /**
  * Set hitpoint warning level
@@ -972,8 +1033,10 @@ static void do_cmd_lazymove_delay(const char *name, int row)
 	res = askfor_aux(tmp, sizeof(tmp), askfor_aux_numbers);
 
 	/* Process input */
-	if (res)
-		player->opts.lazymove_delay = (u16b) strtoul(tmp, NULL, 0);
+	if (res) {
+		u16b delay = (u16b)strtoul(tmp, NULL, 0);
+		player->opts.lazymove_delay = MIN(delay, 255);
+	}
 
 	screen_load();
 }
@@ -1314,7 +1377,7 @@ static int cmp_ignore(const void *a, const void *b)
 /**
  * Determine if an item is a valid choice
  */
-int quality_validity(struct menu *menu, int oid)
+static int quality_validity(struct menu *menu, int oid)
 {
 	return oid ? 1 : 0;
 }
@@ -1820,6 +1883,7 @@ static menu_action option_actions[] =
 	{ 0, 'd', "Set base delay factor", do_cmd_delay },
 	{ 0, 'h', "Set hitpoint warning", do_cmd_hp_warn },
 	{ 0, 'm', "Set movement delay", do_cmd_lazymove_delay },
+	{ 0, 'o', "Set sidebar mode", do_cmd_sidebar_mode },
 	{ 0, 0, NULL, NULL },
 	{ 0, 's', "Save subwindow setup to pref file", do_dump_options },
 	{ 0, 't', "Save autoinscriptions to pref file", do_dump_autoinsc },

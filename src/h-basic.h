@@ -70,14 +70,15 @@
 # ifndef HAVE_DIRENT_H
 #  define HAVE_DIRENT_H
 # endif
-#endif
 
 /**
- * Define SETGID if we are running as a central install on a multiuser
- * system that has setgid support.
+ * May need to be tightened:  without autoconf.h assume all Unixes have mkdir().
  */
-/* #define SETGID */
+# if !defined(HAVE_MKDIR) && !defined(HAVE_CONFIG_H)
+#   define HAVE_MKDIR
+# endif
 
+#endif
 
 /**
  * Every system seems to use its own symbol as a path separator.

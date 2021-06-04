@@ -35,14 +35,17 @@
  * locale junk
  */
 #include "locale.h"
+
+#if !defined(WINDOWS)
 #include "langinfo.h"
+#endif
 
 /**
  * Some machines have a "main()" function in their "main-xxx.c" file,
  * all the others use this file for their "main()" function.
  */
 
-#if defined(WIN32_CONSOLE_MODE) || !defined(WINDOWS) || defined(USE_SDL)
+#if defined(WIN32_CONSOLE_MODE) || !defined(WINDOWS) || defined(USE_SDL) || defined(USE_SDL2)
 
 #include "main.h"
 
@@ -74,6 +77,10 @@ static const struct module modules[] =
 #ifdef USE_STATS
 	{ "stats", help_stats, init_stats },
 #endif /* USE_STATS */
+
+#ifdef USE_SPOIL
+	{ "spoil", help_spoil, init_spoil },
+#endif
 };
 
 /**
@@ -146,6 +153,27 @@ static void init_stuff(void)
 }
 
 
+#ifdef SOUND
+/* State shared by generic_reinit() and main(). */
+static const char *soundstr = NULL;
+static int saved_argc = 0;
+static char **saved_argv = NULL;
+#endif
+
+
+/**
+ * Perform (as ui-game.c's reinit_hook) platform-specific actions necessary
+ * when restarting without exiting.  Also called directly at startup.
+ */
+static void generic_reinit(void)
+{
+#ifdef SOUND
+	/* Initialise sound */
+	init_sound(soundstr, saved_argc, saved_argv);
+#endif
+}
+
+
 static const struct {
 	const char *name;
 	char **path;
@@ -163,6 +191,7 @@ static const struct {
 	{ "icons", &ANGBAND_DIR_ICONS, true },
 	{ "user", &ANGBAND_DIR_USER, true },
 	{ "save", &ANGBAND_DIR_SAVE, false },
+	{ "archive", &ANGBAND_DIR_ARCHIVE, true },
 };
 
 /**
@@ -309,9 +338,6 @@ int main(int argc, char *argv[])
 	bool done = false;
 
 	const char *mstr = NULL;
-#ifdef SOUND
-	const char *soundstr = NULL;
-#endif
 	bool args = true;
 
 	/* Save the "program name" XXX XXX XXX */
@@ -469,27 +495,13 @@ int main(int argc, char *argv[])
 	/* If we were told which mode to use, then use it */
 	if (mstr)
 		ANGBAND_SYS = mstr;
-
+#if !defined(WINDOWS)
 	if (setlocale(LC_CTYPE, "")) {
 		/* Require UTF-8 */
 		if (strcmp(nl_langinfo(CODESET), "UTF-8") != 0)
 			quit("Angband requires UTF-8 support");
 	}
-
-	/* Try the modules in the order specified by modules[] */
-	for (i = 0; i < (int)N_ELEMENTS(modules); i++) {
-		/* User requested a specific module? */
-		if (!mstr || (streq(mstr, modules[i].name))) {
-			ANGBAND_SYS = modules[i].name;
-			if (0 == modules[i].init(argc, argv)) {
-				done = true;
-				break;
-			}
-		}
-	}
-
-	/* Make sure we have a display! */
-	if (!done) quit("Unable to prepare any 'display module'!");
+#endif
 
 #ifdef UNIX
 
@@ -506,16 +518,37 @@ int main(int argc, char *argv[])
 
 #endif /* UNIX */
 
+	/* Try the modules in the order specified by modules[] */
+	for (i = 0; i < (int)N_ELEMENTS(modules); i++) {
+		/* User requested a specific module? */
+		if (!mstr || (streq(mstr, modules[i].name))) {
+			ANGBAND_SYS = modules[i].name;
+			if (0 == modules[i].init(argc, argv)) {
+				done = true;
+				break;
+			}
+		}
+	}
+
+	/* Make sure we have a display! */
+	if (!done) quit("Unable to prepare any 'display module'!");
+
 	/* Catch nasty signals */
 	signals_init();
 
 	/* Set up the command hook */
 	cmd_get_hook = textui_get_cmd;
 
+	/*
+	 * Set action that needs to be done if restarting without exiting.
+	 * Also need to do it now.
+	 */
 #ifdef SOUND
-	/* Initialise sound */
-	init_sound(soundstr, argc, argv);
+	saved_argc = argc;
+	saved_argv = argv;
 #endif
+	reinit_hook = generic_reinit;
+	generic_reinit();
 
 	/* Set up the display handlers and things. */
 	init_display();
@@ -531,6 +564,9 @@ int main(int argc, char *argv[])
 	/* Free resources */
 	textui_cleanup();
 	cleanup_angband();
+#ifdef SOUND
+	close_sound();
+#endif
 
 	/* Quit */
 	quit(NULL);

@@ -52,10 +52,10 @@ static struct object *fail_pile;
 static struct object *fail_object;
 static bool fail_prev;
 static bool fail_next;
-static char *fail_file;
+static const char *fail_file;
 static int fail_line;
 
-void write_pile(ang_file *fff)
+static void write_pile(ang_file *fff)
 {
 	file_putf(fff, "Pile integrity failure at %s:%d\n\n", fail_file, fail_line);
 	file_putf(fff, "Guilty object\n=============\n");
@@ -95,8 +95,8 @@ void write_pile(ang_file *fff)
 /**
  * Quit on getting an object pile error, writing a diagnosis file
  */
-void pile_integrity_fail(struct object *pile, struct object *obj, char *file,
-						 int line)
+static void pile_integrity_fail(struct object *pile, struct object *obj,
+	const char *file, int line)
 {
 	char path[1024];
 
@@ -121,7 +121,8 @@ void pile_integrity_fail(struct object *pile, struct object *obj, char *file,
  * Check the integrity of a linked - make sure it's not circular and that each
  * entry in the chain has consistent next and prev pointers.
  */
-void pile_check_integrity(const char *op, struct object *pile, struct object *hilight)
+static void pile_check_integrity(const char *op, struct object *pile,
+	struct object *hilight)
 {
 	struct object *obj = pile;
 	struct object *prev = NULL;
@@ -435,8 +436,8 @@ bool object_stackable(const struct object *obj1, const struct object *obj2,
 		/* ... otherwise ok */
 	} else if (tval_is_weapon(obj1) || tval_is_armor(obj1) ||
 		tval_is_jewelry(obj1) || tval_is_light(obj1)) {
-		bool obj1_is_known = object_fully_known((struct object *)obj1);
-		bool obj2_is_known = object_fully_known((struct object *)obj2);
+		bool obj1_is_known = object_fully_known(obj1);
+		bool obj2_is_known = object_fully_known(obj2);
 
 		/* Require identical values */
 		if (obj1->ac != obj2->ac) return false;
@@ -491,8 +492,24 @@ bool object_similar(const struct object *obj1, const struct object *obj2,
 	int total = obj1->number + obj2->number;
 
 	/* Check against stacking limit - except in stores which absorb anyway */
-	if (!(mode & OSTACK_STORE) && (total > obj1->kind->base->max_stack))
-		return false;
+	if (!(mode & OSTACK_STORE)) {
+		if (total > obj1->kind->base->max_stack) {
+			return false;
+		}
+		/* The quiver can impose stricter limits. */
+		if (mode & OSTACK_QUIVER) {
+			if (tval_is_ammo(obj1)) {
+				if (total > z_info->quiver_slot_size) {
+					return false;
+				}
+			} else {
+				if (total > z_info->quiver_slot_size /
+						z_info->thrown_quiver_mult) {
+					return false;
+				}
+			}
+		}
+	}
 
 	return object_stackable(obj1, obj2, mode);
 }
@@ -582,14 +599,61 @@ static void object_absorb_merge(struct object *obj1, const struct object *obj2)
 
 /**
  * Merge a smaller stack into a larger stack, leaving two uneven stacks.
+ * \param obj1 Is the first of the stacks to combine.  When the stacking
+ * limits (from mode1 and mode2) are the same, this stack will be larger
+ * when the function returns.
+ * \param obj2 Is the second of the stacks to combine.
+ * \param mode1 Describes the behavior, most notably the upper limit on size,
+ * for the first stack. Can not include OSTACK_STORE, which typically has no
+ * limit on the stack size.
+ * \param mode2 Describes the behavior, most notable the upper limit on size,
+ * for the second stack.  Can not include OSTACK_STORE, which typically has
+ * no limit on the stack size.
  */
-void object_absorb_partial(struct object *obj1, struct object *obj2)
+void object_absorb_partial(struct object *obj1, struct object *obj2,
+	object_stack_t mode1, object_stack_t mode2)
 {
 	int smallest = MIN(obj1->number, obj2->number);
 	int largest = MAX(obj1->number, obj2->number);
-	int difference = obj1->kind->base->max_stack - largest;
-	obj1->number = largest + difference;
-	obj2->number = smallest - difference;
+	int newsz1, newsz2;
+
+	assert(!(mode1 & OSTACK_STORE) && !(mode2 & OSTACK_STORE));
+
+	/* The quiver can have stricter limits. */
+	if (mode1 & OSTACK_QUIVER) {
+		int limit = z_info->quiver_slot_size /
+			(tval_is_ammo(obj1) ?
+			1 : z_info->thrown_quiver_mult);
+
+		if (mode2 & OSTACK_QUIVER) {
+			int difference = limit - largest;
+
+			newsz1 = largest + difference;
+			newsz2 = smallest - difference;
+		} else {
+			/* Handle the possibly different limits. */
+			newsz1 = limit;
+			newsz2 = (largest + smallest) - limit;
+			assert(newsz2 < obj1->kind->base->max_stack);
+		}
+	} else if (mode2 & OSTACK_QUIVER) {
+		/* Handle the possibly different limits. */
+		int limit = z_info->quiver_slot_size /
+			(tval_is_ammo(obj2) ?
+			1 : z_info->thrown_quiver_mult);
+
+		newsz1 = (largest + smallest) - limit;
+		newsz2 = limit;
+		assert(newsz1 < obj1->kind->base->max_stack);
+	} else {
+		int difference = obj1->kind->base->max_stack - largest;
+
+		newsz1 = largest + difference;
+		newsz2 = smallest - difference;
+	}
+
+	obj1->number = newsz1;
+	obj2->number = newsz2;
 
 	object_absorb_merge(obj1, obj2);
 }
@@ -921,8 +985,9 @@ static void floor_carry_fail(struct object *drop, bool broke)
 	/* Delete completely */
 	if (known) {
 		char o_name[80];
-		char *verb = broke ? VERB_AGREEMENT(drop->number, "breaks", "break")
-			: VERB_AGREEMENT(drop->number, "disappears", "disappear");
+		const char *verb = broke ?
+			VERB_AGREEMENT(drop->number, "breaks", "break") :
+			VERB_AGREEMENT(drop->number, "disappears", "disappear");
 		object_desc(o_name, sizeof(o_name), drop, ODESC_BASE);
 		msg("The %s %s.", o_name, verb);
 		if (!loc_is_zero(known->grid))
@@ -1068,7 +1133,7 @@ void drop_near(struct chunk *c, struct object **dropped, int chance,
 	drop_find_grid(*dropped, prefer_pile, &best);
 	if (floor_carry(c, best, *dropped, &dont_ignore)) {
 		sound(MSG_DROP);
-		if (dont_ignore && (square(c, best).mon < 0)) {
+		if (dont_ignore && (square(c, best)->mon < 0)) {
 			msg("You feel something roll beneath your feet.");
 		}
 	} else {
@@ -1129,8 +1194,62 @@ void push_object(struct loc grid)
 		/* Take object from the queue */
 		obj = q_pop_ptr(queue);
 
-		/* Drop the object */
-		drop_near(cave, &obj, 0, grid, false, false);
+		/* Unrevealed mimics require special handling, as always. */
+		if (obj->mimicking_m_idx) {
+			/*
+			 * Try to find a location; there's 49 positions in
+			 * the 7 x 7 square so make at most a small multiple
+			 * of that number in attempts to find an appropriate
+			 * one that doesn't already have a monster or the
+			 * player.  If scatter accepted a predicate argument,
+			 * could avoid the multiple attempts.
+			 */
+			struct monster *mimic =
+				cave_monster(cave, obj->mimicking_m_idx);
+			int ntry = 0;
+
+			assert(mimic);
+			/*
+			 * Reset since the current value is a dangling
+			 * reference to a deleted object.
+			 */
+			mimic->mimicked_obj = NULL;
+
+			while (1) {
+				struct loc newgrid;
+
+				if (ntry > 150) {
+					/*
+					 * Give up.  Destroy both the mimic
+					 * and the object.
+					 */
+					delete_monster_idx(obj->mimicking_m_idx);
+					if (obj->known) {
+						object_delete(&obj->known);
+					}
+					object_delete(&obj);
+					break;
+				}
+				scatter(cave, &newgrid, grid, 3, true);
+				if (square(cave, newgrid)->mon == 0) {
+					bool dummy = true;
+
+					if (floor_carry(cave, newgrid, obj, &dummy)) {
+						/*
+						 * Move the monster and give it
+						 * the object.
+						 */
+						monster_swap(grid, newgrid);
+						mimic->mimicked_obj = obj;
+						break;
+					}
+				}
+				++ntry;
+			}
+		} else {
+			/* Drop the object */
+			drop_near(cave, &obj, 0, grid, false, false);
+		}
 	}
 
 	/* Reset cave feature, remove trap if needed */

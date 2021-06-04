@@ -174,7 +174,7 @@ static int spell_color(struct player *p, const struct monster_race *race,
  * dangerous the attack is to the player given current state. Blows may be
  * colored green (least dangerous), yellow, orange, or red (most dangerous).
  */
-int blow_color(struct player *p, int blow_idx)
+static int blow_color(struct player *p, int blow_idx)
 {
 	const struct blow_effect *blow = &blow_effects[blow_idx];
 
@@ -372,14 +372,51 @@ void cheat_monster_lore(const struct monster_race *race, struct monster_lore *lo
  */
 void wipe_monster_lore(const struct monster_race *race, struct monster_lore *lore)
 {
+	struct monster_blow *blows;
+	bool *blow_known;
+	struct monster_drop *d;
+	struct monster_friends *f;
+	struct monster_friends_base *fb;
+	struct monster_mimic *mk;
+
 	assert(race);
 	assert(lore);
 
-	mem_free(lore->drops);
-	mem_free(lore->friends);
-	mem_free(lore->friends_base);
-	mem_free(lore->mimic_kinds);
+	d = lore->drops;
+	while (d) {
+		struct monster_drop *dn = d->next;
+		mem_free(d);
+		d = dn;
+	}
+	f = lore->friends;
+	while (f) {
+		struct monster_friends *fn = f->next;
+		mem_free(f);
+		f = fn;
+	}
+	fb = lore->friends_base;
+	while (fb) {
+		struct monster_friends_base *fbn = fb->next;
+		mem_free(fb);
+		fb = fbn;
+	}
+	mk = lore->mimic_kinds;
+	while (mk) {
+		struct monster_mimic *mkn = mk->next;
+		mem_free(mk);
+		mk = mkn;
+	}
+	/*
+	 * Keep the blows and blow_known pointers - other code assumes they
+	 * are not NULL.  Wipe the pointed to memory.
+	 */
+	blows = lore->blows;
+	memset(blows, 0, z_info->mon_blows_max * sizeof(*blows));
+	blow_known = lore->blow_known;
+	memset(blow_known, 0, z_info->mon_blows_max * sizeof(*blow_known));
 	memset(lore, 0, sizeof(*lore));
+	lore->blows = blows;
+	lore->blow_known = blow_known;
 }
 
 /**
@@ -454,11 +491,12 @@ bool lore_is_fully_known(const struct monster_race *race)
  * about the treasure (even when the monster is killed for the first
  * time, such as uniques, and the treasure has not been examined yet).
  *
- * This "indirect" method is used to prevent the player from learning
+ * This "indirect" method was used to prevent the player from learning
  * exactly how much treasure a monster can drop from observing only
  * a single example of a drop.  This method actually observes how much
  * gold and items are dropped, and remembers that information to be
- * described later by the monster recall code.
+ * described later by the monster recall code.  It gives the player a chance
+ * to learn if a monster drops only objects or only gold.
  */
 void lore_treasure(struct monster *mon, int num_item, int num_gold)
 {
@@ -468,18 +506,29 @@ void lore_treasure(struct monster *mon, int num_item, int num_gold)
 	assert(num_gold >= 0);
 
 	/* Note the number of things dropped */
-	if (num_item > lore->drop_item)
+	if (num_item > lore->drop_item) {
 		lore->drop_item = num_item;
-	if (num_gold > lore->drop_gold)
+	}
+	if (num_gold > lore->drop_gold) {
 		lore->drop_gold = num_gold;
+	}
 
 	/* Learn about drop quality */
 	rf_on(lore->flags, RF_DROP_GOOD);
 	rf_on(lore->flags, RF_DROP_GREAT);
 
+	/* Have a chance to learn ONLY_ITEM and ONLY_GOLD */
+	if (num_item && (lore->drop_gold == 0) && one_in_(4)) {
+		rf_on(lore->flags, RF_ONLY_ITEM);
+	}
+	if (num_gold && (lore->drop_item == 0) && one_in_(4)) {
+		rf_on(lore->flags, RF_ONLY_GOLD);
+	}
+
 	/* Update monster recall window */
-	if (player->upkeep->monster_race == mon->race)
+	if (player->upkeep->monster_race == mon->race) {
 		player->upkeep->redraw |= (PR_MONSTER);
+	}
 }
 
 /**
@@ -583,14 +632,14 @@ static const char *lore_describe_speed(byte speed)
  * \param tb is the textblock we are adding to.
  * \param race is the monster race we are describing.
  */
-void lore_adjective_speed(textblock *tb, const struct monster_race *race)
+static void lore_adjective_speed(textblock *tb, const struct monster_race *race)
 {
 	/* "at" is separate from the normal speed description in order to use the
 	 * normal text colour */
 	if (race->speed == 110)
 		textblock_append(tb, "at ");
 
-	textblock_append_c(tb, COLOUR_GREEN, lore_describe_speed(race->speed));
+	textblock_append_c(tb, COLOUR_GREEN, "%s", lore_describe_speed(race->speed));
 }
 
 /**
@@ -599,7 +648,7 @@ void lore_adjective_speed(textblock *tb, const struct monster_race *race)
  * \param tb is the textblock we are adding to.
  * \param race is the monster race we are describing.
  */
-void lore_multiplier_speed(textblock *tb, const struct monster_race *race)
+static void lore_multiplier_speed(textblock *tb, const struct monster_race *race)
 {
 	// moves at 2.3x normal speed (0.9x your current speed)
 	textblock_append(tb, "at ");
@@ -611,7 +660,7 @@ void lore_multiplier_speed(textblock *tb, const struct monster_race *race)
 	byte attr = COLOUR_ORANGE;
 
 	strnfmt(buf, sizeof(buf), "%d.%dx", int_mul, dec_mul);
-	textblock_append_c(tb, COLOUR_L_BLUE, buf);
+	textblock_append_c(tb, COLOUR_L_BLUE, "%s", buf);
 
 	textblock_append(tb, " normal speed, which is ");
 	multiplier = 100 * extract_energy[race->speed]
@@ -634,7 +683,7 @@ void lore_multiplier_speed(textblock *tb, const struct monster_race *race)
 	if (player->state.speed == race->speed) {
 		textblock_append(tb, "the same as you");
 	} else {
-		textblock_append_c(tb, attr, buf);
+		textblock_append_c(tb, attr, "%s", buf);
 		textblock_append(tb, " your speed");
 	}
 }
@@ -733,7 +782,7 @@ static void lore_append_clause(textblock *tb, bitflag *f, byte attr,
 
 	if (count) {
 		int flag;
-		textblock_append(tb, start);
+		textblock_append(tb, "%s", start);
 		for (flag = rf_next(f, FLAG_START); flag; flag = rf_next(f, flag + 1)) {
 			/* First entry starts immediately */
 			if (flag != rf_next(f, FLAG_START)) {
@@ -743,13 +792,13 @@ static void lore_append_clause(textblock *tb, bitflag *f, byte attr,
 				/* Last entry */
 				if (rf_next(f, flag + 1) == FLAG_END) {
 					textblock_append(tb, " ");
-					textblock_append(tb, conjunction);
+					textblock_append(tb, "%s", conjunction);
 				}
 				textblock_append(tb, " ");
 			}
-			textblock_append_c(tb, attr, describe_race_flag(flag));
+			textblock_append_c(tb, attr, "%s", describe_race_flag(flag));
 		}
-		textblock_append(tb, end);
+		textblock_append(tb, "%s", end);
 	}
 }
 
@@ -789,17 +838,17 @@ static void lore_append_spell_clause(textblock *tb, bitflag *f, bool know_hp,
 				/* Last entry */
 				if (rsf_next(f, spell + 1) == FLAG_END) {
 					textblock_append(tb, " ");
-					textblock_append(tb, conjunction);
+					textblock_append(tb, "%s", conjunction);
 				}
 				textblock_append(tb, " ");
 			}
-			textblock_append_c(tb, color,
+			textblock_append_c(tb, color, "%s",
 							   mon_spell_lore_description(spell, race));
 			if (damage > 0) {
 				textblock_append_c(tb, color, " (%d)", damage);
 			}
 		}
-		textblock_append(tb, end);
+		textblock_append(tb, "%s", end);
 	}
 }
 
@@ -889,20 +938,12 @@ void lore_append_kills(textblock *tb, const struct monster_race *race,
  *
  * \param tb is the textblock we are adding to.
  * \param race is the monster race we are describing.
- * \param append_utf8 indicates if we should append the flavor text as UTF-8
- *        (which is preferred for spoiler files).
  */
-void lore_append_flavor(textblock *tb, const struct monster_race *race,
-						bool append_utf8)
+void lore_append_flavor(textblock *tb, const struct monster_race *race)
 {
 	assert(tb && race);
 
-	if (append_utf8)
-		textblock_append_utf8(tb, race->text);
-	else
-		textblock_append(tb, race->text);
-
-	textblock_append(tb, "\n");
+	textblock_append(tb, "%s\n", race->text);
 }
 
 /**
@@ -1145,7 +1186,7 @@ void lore_append_drop(textblock *tb, const struct monster_race *race,
 					  const struct monster_lore *lore,
 					  bitflag known_flags[RF_SIZE])
 {
-	int n = 0;
+	int n = 0, nspec = 0;
 	monster_sex_t msex = MON_SEX_NEUTER;
 
 	assert(tb && race && lore);
@@ -1155,42 +1196,74 @@ void lore_append_drop(textblock *tb, const struct monster_race *race,
 	msex = lore_monster_sex(race);
 
 	/* Count maximum drop */
-	n = mon_create_drop_count(race, true);
+	n = mon_create_drop_count(race, true, false, &nspec);
 
 	/* Drops gold and/or items */
-	if (n > 0) {
-		bool only_item = rf_has(known_flags, RF_ONLY_ITEM);
-		bool only_gold = rf_has(known_flags, RF_ONLY_GOLD);
-
+	if (n > 0 || nspec > 0) {
 		textblock_append(tb, "%s may carry",
-						 lore_pronoun_nominative(msex, true));
+			lore_pronoun_nominative(msex, true));
 
-		/* Count drops */
-		if (n == 1)
-			textblock_append_c(tb, COLOUR_BLUE, " a single ");
-		else if (n == 2)
-			textblock_append_c(tb, COLOUR_BLUE, " one or two ");
-		else {
-			textblock_append(tb, " up to ");
-			textblock_append_c(tb, COLOUR_BLUE, format("%d ", n));
+		/* Report general drops */
+		if (n > 0) {
+			bool only_item = rf_has(known_flags, RF_ONLY_ITEM);
+			bool only_gold = rf_has(known_flags, RF_ONLY_GOLD);
+
+			if (n == 1) {
+				textblock_append_c(tb, COLOUR_BLUE,
+					" a single ");
+			} else if (n == 2) {
+				textblock_append_c(tb, COLOUR_BLUE,
+					" one or two ");
+			} else {
+				textblock_append(tb, " up to ");
+				textblock_append_c(tb, COLOUR_BLUE,
+					format("%d ", n));
+			}
+
+			/* Quality */
+			if (rf_has(known_flags, RF_DROP_GREAT)) {
+				textblock_append_c(tb, COLOUR_BLUE,
+					"exceptional ");
+			} else if (rf_has(known_flags, RF_DROP_GOOD)) {
+				textblock_append_c(tb, COLOUR_BLUE, "good ");
+			}
+
+			/* Objects or treasures */
+			if (only_item && only_gold) {
+				textblock_append_c(tb, COLOUR_BLUE,
+					"error%s", PLURAL(n));
+			} else if (only_item && !only_gold) {
+				textblock_append_c(tb, COLOUR_BLUE,
+					"object%s", PLURAL(n));
+			} else if (!only_item && only_gold) {
+				textblock_append_c(tb, COLOUR_BLUE,
+					"treasure%s", PLURAL(n));
+			} else if (!only_item && !only_gold) {
+				textblock_append_c(tb, COLOUR_BLUE,
+					"object%s or treasure%s",
+					PLURAL(n), PLURAL(n));
+			}
 		}
 
-		/* Quality */
-		if (rf_has(known_flags, RF_DROP_GREAT))
-			textblock_append_c(tb, COLOUR_BLUE, "exceptional ");
-		else if (rf_has(known_flags, RF_DROP_GOOD))
-			textblock_append_c(tb, COLOUR_BLUE, "good ");
-
-		/* Objects or treasures */
-		if (only_item && only_gold)
-			textblock_append_c(tb, COLOUR_BLUE, "error%s", PLURAL(n));
-		else if (only_item && !only_gold)
-			textblock_append_c(tb, COLOUR_BLUE, "object%s", PLURAL(n));
-		else if (!only_item && only_gold)
-			textblock_append_c(tb, COLOUR_BLUE, "treasure%s", PLURAL(n));
-		else if (!only_item && !only_gold)
-			textblock_append_c(tb, COLOUR_BLUE, "object%s or treasure%s",
-							   PLURAL(n), PLURAL(n));
+		/*
+		 * Report specific drops (just maximum number, no types,
+		 * does not include quest artifacts).
+		 */
+		if (nspec > 0) {
+			if (n > 0) {
+				textblock_append(tb, " and");
+			}
+			if (nspec == 1) {
+				textblock_append(tb, " a single");
+			} else if (nspec == 2) {
+				textblock_append(tb, " one or two");
+			} else {
+				textblock_append(tb, " up to");
+				textblock_append_c(tb, COLOUR_BLUE,
+					format(" %d", nspec));
+			}
+			textblock_append(tb, " specific items");
+		}
 
 		textblock_append(tb, ".  ");
 	}
@@ -1468,7 +1541,7 @@ void lore_append_spells(textblock *tb, const struct monster_race *race,
 	}
 
 	/* End the sentence about innate spells and breaths */
-	if (innate || breath) {
+	if ((innate || breath) && race->freq_innate) {
 		if (lore->innate_freq_known) {
 			/* Describe the spell frequency */
 			textblock_append(tb, "; ");
@@ -1478,7 +1551,7 @@ void lore_append_spells(textblock *tb, const struct monster_race *race,
 							   100 / race->freq_innate);
 		} else if (lore->cast_innate) {
 			/* Guess at the frequency */
-			int approx_frequency = ((race->freq_innate + 9) / 10) * 10;
+			int approx_frequency = MAX(((race->freq_innate + 9) / 10) * 10, 1);
 			textblock_append(tb, "; about ");
 			textblock_append_c(tb, COLOUR_L_GREEN, "1");
 			textblock_append(tb, " time in ");
@@ -1509,21 +1582,24 @@ void lore_append_spells(textblock *tb, const struct monster_race *race,
 		lore_append_spell_clause(tb, current_flags, know_hp, race, "or", "");
 
 		/* End the sentence about innate/other spells */
-		if (lore->spell_freq_known) {
-			/* Describe the spell frequency */
-			textblock_append(tb, "; ");
-			textblock_append_c(tb, COLOUR_L_GREEN, "1");
-			textblock_append(tb, " time in ");
-			textblock_append_c(tb, COLOUR_L_GREEN, "%d",
-							   100 / race->freq_spell);
-		} else if (lore->cast_spell) {
-			/* Guess at the frequency */
-			int approx_frequency = ((race->freq_spell + 9) / 10) * 10;
-			textblock_append(tb, "; about ");
-			textblock_append_c(tb, COLOUR_L_GREEN, "1");
-			textblock_append(tb, " time in ");
-			textblock_append_c(tb, COLOUR_L_GREEN, "%d",
-							   100 / approx_frequency);
+		if (race->freq_spell) {
+			if (lore->spell_freq_known) {
+				/* Describe the spell frequency */
+				textblock_append(tb, "; ");
+				textblock_append_c(tb, COLOUR_L_GREEN, "1");
+				textblock_append(tb, " time in ");
+				textblock_append_c(tb, COLOUR_L_GREEN, "%d",
+								   100 / race->freq_spell);
+			} else if (lore->cast_spell) {
+				/* Guess at the frequency */
+				int approx_frequency = MAX(((race->freq_spell + 9) / 10) * 10,
+										   1);
+				textblock_append(tb, "; about ");
+				textblock_append_c(tb, COLOUR_L_GREEN, "1");
+				textblock_append(tb, " time in ");
+				textblock_append_c(tb, COLOUR_L_GREEN, "%d",
+								   100 / approx_frequency);
+			}
 		}
 
 		textblock_append(tb, ".  ");
@@ -1607,14 +1683,14 @@ void lore_append_attack(textblock *tb, const struct monster_race *race,
 			textblock_append(tb, ", and ");
 
 		/* Describe the method */
-		textblock_append(tb, race->blow[i].method->desc);
+		textblock_append(tb, "%s", race->blow[i].method->desc);
 
 		/* Describe the effect (if any) */
 		if (effect_str && strlen(effect_str) > 0) {
 			int index = blow_index(race->blow[i].effect->name);
 			/* Describe the attack type */
 			textblock_append(tb, " to ");
-			textblock_append_c(tb, blow_color(player, index), effect_str);
+			textblock_append_c(tb, blow_color(player, index), "%s", effect_str);
 
 			textblock_append(tb, " (");
 			/* Describe damage (if known) */
@@ -1674,7 +1750,7 @@ struct monster_lore *get_lore(const struct monster_race *race)
 /**
  * Write the monster lore
  */
-void write_lore_entries(ang_file *fff)
+static void write_lore_entries(ang_file *fff)
 {
 	int i, n;
 

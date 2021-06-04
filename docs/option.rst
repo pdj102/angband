@@ -9,9 +9,6 @@ In the descriptions below, each option is listed as the textual summary
 which is shown on the "options" screen, plus the internal name of the
 option in brackets, followed by a textual description of the option.
 
-Note that the internal name of the option can be used in user pref files to
-force the option to a given setting, see "customize.txt" for more info.
-
 Various concepts are mentioned in the descriptions below, including
 "disturb", (cancel any running, resting, or repeated commands, which are in
 progress), "flush" (forget any keypresses waiting in the keypress queue),
@@ -54,11 +51,11 @@ Show flavors in object descriptions ``show_flavors``
 
 Highlight target with cursor ``show_target``
   Highlights the current targeted monster with a cursor.  Useful when 
-  combined with "use old target by default"
+  combined with "use old target by default".
 
 Highlight player with cursor between turns ``highlight_player``
   Highlights the player with a cursor.  Useful if you have trouble finding
-  the player
+  the player.
 
 Disturb whenever viewable monster moves ``disturb_near``
   Disturb the player when any viewable monster moves, whenever any monster
@@ -73,7 +70,7 @@ Show walls as solid blocks ``solid_walls``
 
 Show walls with shaded backgrounds ``hybrid_walls``
   Walls appear as # and % symbols overlaid on a gray background block.  
-  This overrides ``solid_walls``
+  This overrides ``solid_walls``.
 
 Color: Illuminate torchlight in yellow ``view_yellow_light``
   This option causes special colors to be used for "torch-lit" grids.
@@ -120,6 +117,15 @@ Show effective speed as multiplier ``effective_speed``
 
 Birth options
 =============
+
+The birth options may only be changed when creating a character or using
+the quick restart option for a dead character.  When setting the birth
+options, there are handful of commands to make it easier to get to a
+well-known state for all the birth options.  They are:  's' to save the
+current selections so that they will be used as the starting point for
+future characters, 'r' to reset the current selections to the defaults
+for a new character, and 'm' to reset the current selections to the
+Angband maintainer's defaults for the birth options.
 
 Generate a new, random artifact set ``birth_randarts``
   A different set of artifacts will be created, in place of the standard
@@ -195,7 +201,7 @@ Monsters learn from their mistakes ``birth_ai_learn``
 Know all runes on birth ``birth_know_runes``
   For players who don't enjoy the "identify by use" process for wearable
   items.  This option means all object properties are known at the outset, so
-  artifacts and ego items will identified on walking over them.
+  artifacts and ego items will be identified on walking over them.
 
 Know all flavors on birth ``birth_know_flavors``
   For players who don't enjoy the "identify by use" process for consumable
@@ -204,7 +210,7 @@ Know all flavors on birth ``birth_know_flavors``
 Persistent levels (experimental) ``birth_levels_persist``
   Each level is generated for the first time when the player enters it, and 
   from then on when the player returns the level is as they last saw it, 
-  includeing monsters, items and traps.
+  including monsters, items and traps.
 
 To-damage is a percentage of dice (experimental) ``birth_percent_damage``
   Instead of bonuses to damage being just added on to damage dealt, each +1

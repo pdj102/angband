@@ -33,6 +33,7 @@
 #include "ui-context.h"
 #include "ui-curse.h"
 #include "ui-display.h"
+#include "ui-effect.h"
 #include "ui-help.h"
 #include "ui-keymap.h"
 #include "ui-knowledge.h"
@@ -409,6 +410,7 @@ void display_message(game_event_type unused, game_event_data *data, void *user)
 	const char *msg;
 
 	if (!data) return;
+	if (OPT(player, auto_more) || keymap_auto_more) return;
 
 	type = data->message.type;
 	msg = data->message.msg;
@@ -555,6 +557,8 @@ void clear_from(int row)
 bool askfor_aux_keypress(char *buf, size_t buflen, size_t *curs, size_t *len,
 						 struct keypress keypress, bool firsttime)
 {
+	size_t ulen = utf8_strlen(buf);
+
 	switch (keypress.code)
 	{
 		case ESCAPE:
@@ -565,51 +569,71 @@ bool askfor_aux_keypress(char *buf, size_t buflen, size_t *curs, size_t *len,
 		
 		case KC_ENTER:
 		{
-			*curs = *len;
+			*curs = ulen;
 			return true;
 		}
 		
 		case ARROW_LEFT:
 		{
-			if (firsttime) *curs = 0;
-			if (*curs > 0) (*curs)--;
+			if (firsttime) {
+				*curs = 0;
+			} else if (*curs > 0) {
+				(*curs)--;
+			}
 			break;
 		}
 		
 		case ARROW_RIGHT:
 		{
-			if (firsttime) *curs = *len - 1;
-			if (*curs < *len) (*curs)++;
+			if (firsttime) {
+				*curs = ulen;
+			} else if (*curs < ulen) {
+				(*curs)++;
+			}
 			break;
 		}
 		
 		case KC_BACKSPACE:
 		case KC_DELETE:
 		{
+			char *ocurs, *oshift;
+
 			/* If this is the first time round, backspace means "delete all" */
 			if (firsttime) {
 				buf[0] = '\0';
 				*curs = 0;
 				*len = 0;
-
 				break;
 			}
 
 			/* Refuse to backspace into oblivion */
 			if ((keypress.code == KC_BACKSPACE && *curs == 0) ||
-				(keypress.code == KC_DELETE && *curs >= *len))
+				(keypress.code == KC_DELETE && *curs >= ulen))
 				break;
 
-			/* Move the string from k to nul along to the left by 1 */
-			if (keypress.code == KC_BACKSPACE)
-				memmove(&buf[*curs - 1], &buf[*curs], *len - *curs);
-			else
-				memmove(&buf[*curs], &buf[*curs+1], *len - *curs -1);
-
-			/* Decrement */
-			if(keypress.code == KC_BACKSPACE)
+			/*
+			 * Move the string from k to nul along to the left
+			 * by 1.  First, have to get offset corresponding to
+			 * the cursor position.
+			 */
+			ocurs = utf8_fskip(buf, *curs, NULL);
+			assert(ocurs);
+			if (keypress.code == KC_BACKSPACE) {
+				/* Get offset of the previous character. */
+				oshift = utf8_rskip(ocurs, 1, buf);
+				assert(oshift);
+				memmove(oshift, ocurs, *len - (ocurs - buf));
+				/* Decrement. */
 				(*curs)--;
-			(*len)--;
+				*len -= ocurs - oshift;
+			} else {
+				/* Get offset of the next character. */
+				oshift = utf8_fskip(buf + *curs, 1, NULL);
+				assert(oshift);
+				memmove(ocurs, oshift, *len - (oshift - buf));
+				/* Decrement */
+				*len -= oshift - ocurs;
+			}
 
 			/* Terminate */
 			buf[*len] = '\0';
@@ -619,9 +643,17 @@ bool askfor_aux_keypress(char *buf, size_t buflen, size_t *curs, size_t *len,
 		
 		default:
 		{
-			bool atnull = (buf[*curs] == 0);
+			bool atnull = (*curs == ulen);
+			char encoded[5];
+			size_t n_enc = 0;
+			char *ocurs;
 
-			if (!isprint(keypress.code)) {
+			if (keycode_isprint(keypress.code)) {
+				n_enc = utf32_to_utf8(encoded,
+					N_ELEMENTS(encoded), &keypress.code,
+					1, NULL);
+			}
+			if (n_enc == 0) {
 				bell("Illegal edit key!");
 				break;
 			}
@@ -634,20 +666,29 @@ bool askfor_aux_keypress(char *buf, size_t buflen, size_t *curs, size_t *len,
 				atnull = 1;
 			}
 
-			if (atnull) {
-				/* Make sure we have enough room for a new character */
-				if ((*curs + 1) >= buflen) break;
-			} else {
-				/* Make sure we have enough room to add a new character */
-				if ((*len + 1) >= buflen) break;
-
-				/* Move the rest of the buffer along to make room */
-				memmove(&buf[*curs+1], &buf[*curs], *len - *curs);
+			/* Make sure we have enough room for the new character */
+			if (*len + n_enc >= buflen) {
+				break;
 			}
 
-			/* Insert the character */
-			buf[(*curs)++] = (char)keypress.code;
-			(*len)++;
+			/* Insert the encoded character. */
+			if (atnull) {
+				ocurs = buf + *len;
+			} else {
+				ocurs = utf8_fskip(buf, *curs, NULL);
+				assert(ocurs);
+				/*
+				 * Move the rest of the buffer along to make
+				 * room.
+				 */
+				memmove(ocurs + n_enc, ocurs,
+					*len - (ocurs - buf));
+			}
+			memcpy(ocurs, encoded, n_enc);
+
+			/* Update position and length. */
+			(*curs)++;
+			*len += n_enc;
 
 			/* Terminate */
 			buf[*len] = '\0';
@@ -819,7 +860,7 @@ bool get_character_name(char *buf, size_t buflen)
  * See "askfor_aux" for some notes about "buf" and "len", and about
  * the return value of this function.
  */
-bool textui_get_string(const char *prompt, char *buf, size_t len)
+static bool textui_get_string(const char *prompt, char *buf, size_t len)
 {
 	bool res;
 
@@ -844,7 +885,7 @@ bool textui_get_string(const char *prompt, char *buf, size_t len)
 /**
  * Request a "quantity" from the user
  */
-int textui_get_quantity(const char *prompt, int max)
+static int textui_get_quantity(const char *prompt, int max)
 {
 	int amt = 1;
 
@@ -893,7 +934,7 @@ int textui_get_quantity(const char *prompt, int max)
  *
  * Note that "[y/n]" is appended to the prompt.
  */
-bool textui_get_check(const char *prompt)
+static bool textui_get_check(const char *prompt)
 {
 	ui_event ke;
 
@@ -984,7 +1025,7 @@ static bool get_file_text(const char *suggested_name, char *path, size_t len)
 			/* Make sure it's actually a filename */
 			if (buf[0] == '\0' || buf[0] == ' ') return false;
 	} else {
-		int len;
+		int old_len;
 		time_t ltime;
 		struct tm *today;
 
@@ -996,8 +1037,8 @@ static bool get_file_text(const char *suggested_name, char *path, size_t len)
 
 		/* Overwrite the ".txt" that was added */
 		assert(strlen(buf) >= 4);
-		len = strlen(buf) - 4;
-		strftime(buf + len, sizeof(buf) - len, "-%Y-%m-%d-%H-%M.txt", today);
+		old_len = strlen(buf) - 4;
+		strftime(buf + old_len, sizeof(buf) - len, "-%Y-%m-%d-%H-%M.txt", today);
 
 		/* Prompt the user to confirm or cancel the file dump */
 		if (!get_check(format("Confirm writing to %s? ", buf))) return false;
@@ -1042,7 +1083,7 @@ bool (*get_file)(const char *suggested_name, char *path, size_t len) = get_file_
  * -------
  * Returns true unless the character is "Escape"
  */
-bool textui_get_com(const char *prompt, char *command)
+static bool textui_get_com(const char *prompt, char *command)
 {
 	ui_event ke;
 	bool result;
@@ -1087,12 +1128,12 @@ bool get_com_ex(const char *prompt, ui_event *command)
  *
  * This function is stupid.  XXX XXX XXX
  */
-void pause_line(struct term *term)
+void pause_line(struct term *tm)
 {
-	prt("", term->hgt - 1, 0);
-	put_str("[Press any key to continue]", term->hgt - 1, (Term->wid - 27) / 2);
+	prt("", tm->hgt - 1, 0);
+	put_str("[Press any key to continue]", tm->hgt - 1, (tm->wid - 27) / 2);
 	(void)anykey();
-	prt("", term->hgt - 1, 0);
+	prt("", tm->hgt - 1, 0);
 }
 
 static int dir_transitions[10][10] =
@@ -1124,7 +1165,7 @@ static int dir_transitions[10][10] =
  * This function tracks and uses the "global direction", and uses
  * that as the "desired direction", if it is set.
  */
-bool textui_get_rep_dir(int *dp, bool allow_5)
+static bool textui_get_rep_dir(int *dp, bool allow_5)
 {
 	int dir = 0;
 
@@ -1230,7 +1271,7 @@ bool textui_get_rep_dir(int *dp, bool allow_5)
  * Note that "Force Target", if set, will pre-empt user interaction,
  * if there is a usable target already set.
  */
-bool textui_get_aim_dir(int *dp)
+static bool textui_get_aim_dir(int *dp)
 {
 	/* Global direction */
 	int dir = 0;
@@ -1331,6 +1372,7 @@ void textui_input_init(void)
 	get_aim_dir_hook = textui_get_aim_dir;
 	get_spell_from_book_hook = textui_get_spell_from_book;
 	get_spell_hook = textui_get_spell;
+	get_effect_from_list_hook = textui_get_effect_from_list;
 	get_item_hook = textui_get_item;
 	get_curse_hook = textui_get_curse;
 	get_panel_hook = textui_get_panel;

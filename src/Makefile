@@ -13,15 +13,19 @@ ifneq (${VERSION},)
 endif
 
 CFLAGS += -I. -fPIC -std=c99 -O0
+# Replace above line with the two below and then look at gmon.out
+# to do performance monitoring
+# CFLAGS += -g -pg -I. -fPIC -std=c99 -O0
+# LDFLAGS += -g -pg
 
 # gcov intermediate data
 GCOBJS = $(OBJECTS:.o=.gcno) $(OBJECTS:.o=.gcda)
 GCOVS = $(OBJECTS:.o=.c.gcov)
 
 CLEAN = angband.o $(OBJECTS) win/angband.res
-DISTCLEAN = autoconf.h
+DISTCLEAN = autoconf.h tests/.deps
 
-export CFLAGS LDFLAGS LIBS
+export CFLAGS CPPFLAGS LDFLAGS LIBS
 
 $(PROG): $(PROGNAME).o $(MAINFILES)
 	$(CC) -o $@ $(PROGNAME).o $(MAINFILES) $(LDFLAGS) $(LDADD) $(LIBS)
@@ -39,6 +43,9 @@ tests: $(PROGNAME).o
 
 test-clean:
 	$(MAKE) -C tests clean
+
+# Hack to descend into tests and clean since it isn't included in SUBDIRS.
+pre-clean: test-clean
 
 splint:
 	splint -f .splintrc ${OBJECTS:.o=.c} main.c main-gcu.c
@@ -59,5 +66,17 @@ gen-covs: tests/ran-already $(GCOVS)
 
 %.gcov: %
 	(gcov -o $(dir $^) -p $^ >/dev/null)
+
+post-install:
+	# For a shared installation, set appropriate owner for executable
+	# and mark it as setgid.
+	if [ "x$(SETEGID)" != "x" ]; then \
+		${INSTALL_STATUS}; \
+		if chown root:${SETEGID} ${DESTDIR}${bindir}/${PROG} && chmod g+s ${DESTDIR}${bindir}/${PROG} ; then \
+			${INSTALL_OK}; \
+		else \
+			${INSTALL_FAILED}; \
+		fi \
+	fi
 
 .PHONY : tests coverage clean-coverage tests/ran-already

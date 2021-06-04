@@ -325,7 +325,7 @@ bool file_exists(const char *fname)
 	DWORD attrib;
 
 	/* API says we mustn't pass anything larger than MAX_PATH */
-	my_strcpy(path, s, sizeof(path));
+	my_strcpy(path, fname, sizeof(path));
 
 	attrib = GetFileAttributes(path);
 	if (attrib == INVALID_FILE_NAME) return false;
@@ -723,7 +723,7 @@ bool dir_create(const char *path) { return false; }
  * For information on what these are meant to do, please read the header file.
  */
 
-#ifdef WINDOWS
+#if defined(WINDOWS) && !defined(HAVE_DIRENT_H)
 
 
 /* System-specific struct */
@@ -765,6 +765,7 @@ bool my_dread(ang_dir *dir, char *fname, size_t len)
 		/* Copy the string across, then free it */
 		my_strcpy(fname, dir->first_file, len);
 		mem_free(dir->first_file);
+		dir->first_file = NULL;
 
 		/* Wild success */
 		return true;
@@ -802,7 +803,7 @@ void my_dclose(ang_dir *dir)
 	mem_free(dir);
 }
 
-#else /* WINDOWS */
+#else /* defined(WINDOWS) && !defined(HAVE_DIRENT_H) */
 
 #ifdef HAVE_DIRENT_H
 

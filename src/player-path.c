@@ -150,7 +150,7 @@ static bool set_up_path_distances(struct loc grid)
 	/* Check bounds */
 	if ((grid.x >= top_left.x) && (grid.x < bottom_right.x) &&
 		(grid.y >= top_left.y) && (grid.y < bottom_right.y)) {
-		if ((square(cave, grid).mon > 0) &&
+		if ((square(cave, grid)->mon > 0) &&
 			monster_is_visible(square_monster(cave, grid))) {
 			set_path_dist(grid, MAX_PF_LENGTH);
 		}
@@ -594,7 +594,7 @@ static bool run_test(void)
 		grid = loc_sum(player->grid, ddgrid[new_dir]);
 
 		/* Visible monsters abort running */
-		if (square(cave, grid).mon > 0) {
+		if (square(cave, grid)->mon > 0) {
 			struct monster *mon = square_monster(cave, grid);
 			if (monster_is_visible(mon)) {
 				return true;
@@ -676,7 +676,7 @@ static bool run_test(void)
 		if (!square_in_bounds(cave, grid)) continue;
 
 		/* Obvious monsters abort running */
-		if (square(cave, grid).mon > 0) {
+		if (square(cave, grid)->mon > 0) {
 			struct monster *mon = square_monster(cave, grid);
 			if (monster_is_obvious(mon))
 				return true;
@@ -749,8 +749,6 @@ static bool run_test(void)
 	return false;
 }
 
-
-
 /**
  * Take one step along the current "run" path
  *
@@ -779,12 +777,12 @@ void run_step(int dir)
 			/* Update regular running */
 			if (run_test()) {
 				/* Disturb */
-				disturb(player, 0);
+				disturb(player);
 				return;
 			}
 		} else if (path_step_idx < 0) {
 			/* Pathfinding, and the path is finished */
-			disturb(player, 0);
+			disturb(player);
 			player->upkeep->running_withpathfind = false;
 			return;
 		} else {
@@ -795,7 +793,7 @@ void run_step(int dir)
 				/* Known wall */
 				if (square_isknown(cave, grid) &&
 					!square_ispassable(cave, grid)) {
-					disturb(player, 0);
+					disturb(player);
 					player->upkeep->running_withpathfind = false;
 					return;
 				}
@@ -815,18 +813,18 @@ void run_step(int dir)
 				/* Known wall */
 				if (square_isknown(cave, grid) &&
 					!square_ispassable(cave, grid)) {
-					disturb(player, 0);
+					disturb(player);
 					player->upkeep->running_withpathfind = false;
 					return;
 				}
 
 				/* Visible monsters abort running */
-				if (square(cave, grid).mon > 0) {
+				if (square(cave, grid)->mon > 0) {
 					struct monster *mon = square_monster(cave, grid);
 
 					/* Visible monster */
 					if (monster_is_visible(mon)) {
-						disturb(player, 0);
+						disturb(player);
 						player->upkeep->running_withpathfind = false;
 						return;
 					}
@@ -836,7 +834,7 @@ void run_step(int dir)
 				for (obj = square_object(cave, grid); obj; obj = obj->next)
 					/* Visible object */
 					if (obj->known && !ignore_item_ok(obj)) {
-					disturb(player, 0);
+					disturb(player);
 					player->upkeep->running_withpathfind = false;
 					return;
 				}
@@ -858,7 +856,7 @@ void run_step(int dir)
 	}
 
 	/* Take time */
-	player->upkeep->energy_use = z_info->move_energy / player->state.num_moves;
+	player->upkeep->energy_use = energy_per_move(player);
 
 	/* Move the player; running straight into a trap == trying to disarm */
 	move_player(run_cur_dir, dir && disarm ? true : false);

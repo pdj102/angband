@@ -40,6 +40,7 @@
 #include "store.h"
 #include "target.h"
 #include "trap.h"
+#include "ui-input.h"
 
 /**
  * Increment to the next or decrement to the preceeding level
@@ -53,19 +54,19 @@ int dungeon_get_next_level(int dlev, int added)
 
 	/* Get target level */
 	target_level = dlev + added * z_info->stair_skip;
-	
+
 	/* Don't allow levels below max */
 	if (target_level > z_info->max_depth - 1)
 		target_level = z_info->max_depth - 1;
 
 	/* Don't allow levels above the town */
 	if (target_level < 0) target_level = 0;
-	
+
 	/* Check intermediate levels for quests */
 	for (i = dlev; i <= target_level; i++) {
 		if (is_quest(i)) return i;
 	}
-	
+
 	return target_level;
 }
 
@@ -97,7 +98,8 @@ bool player_get_recall_depth(struct player *p)
 	int new = 0;
 
 	while (!level_ok) {
-		char *prompt = "Which level do you wish to return to (0 to cancel)? ";
+		const char *prompt =
+			"Which level do you wish to return to (0 to cancel)? ";
 		int i;
 
 		/* Choose the level */
@@ -169,7 +171,7 @@ void take_hit(struct player *p, int dam, const char *kb_str)
 	if (dam <= 0) return;
 
 	/* Disturb */
-	disturb(p, 1);
+	disturb(p);
 
 	/* Hurt the player */
 	p->chp -= dam;
@@ -275,6 +277,16 @@ void death_knowledge(struct player *p)
 }
 
 /**
+ * Energy per move, taking extra moves into account
+ */
+int energy_per_move(struct player *p)
+{
+	int num = p->state.num_moves;
+	int energy = z_info->move_energy;
+	return (energy * (1 + ABS(num) - num)) / (1 + ABS(num));
+}
+
+/**
  * Modify a stat value by a "modifier", return new value
  *
  * Stats go up: 3,4,...,17,18,18/10,18/20,...,18/220
@@ -345,7 +357,7 @@ void player_regen_hp(struct player *p)
 		percent *= 2;
 
 	/* Some things slow it down */
-	if (player_of_has(p, OF_IMPAIR_HP) || player_has(p, PF_COMBAT_REGEN))
+	if (player_of_has(p, OF_IMPAIR_HP))
 		percent /= 2;
 
 	/* Various things interfere with physical healing */
@@ -380,8 +392,8 @@ void player_regen_mana(struct player *p)
 	/* Default regeneration */
 	percent = PY_REGEN_NORMAL;
 
-	/* Various things speed up regeneration, but don't punish BGs */
-	if (!(player_has(p, PF_COMBAT_REGEN) && p->chp == p->mhp)) {
+	/* Various things speed up regeneration, but shouldn't punish healthy BGs */
+	if (!(player_has(p, PF_COMBAT_REGEN) && p->chp  > p->mhp / 2)) {
 		if (player_of_has(p, OF_REGEN))
 			percent *= 2;
 		if (player_resting_can_regenerate(p))
@@ -397,7 +409,8 @@ void player_regen_mana(struct player *p)
 
 	/* Regenerate mana */
 	sp_gain = (s32b)(p->msp * percent);
-	sp_gain += (percent < 0) ? -PY_REGEN_MNBASE : PY_REGEN_MNBASE;
+	if (percent >= 0)
+		sp_gain += PY_REGEN_MNBASE;
 	sp_gain = player_adjust_mana_precise(p, sp_gain);
 
 	/* SP degen heals BGs at double efficiency vs casting */
@@ -564,7 +577,7 @@ void player_update_light(struct player *p)
 				if (obj->timeout == 0) obj->timeout++;
 			} else if (obj->timeout == 0) {
 				/* The light is now out */
-				disturb(p, 0);
+				disturb(p);
 				msg("Your light has gone out!");
 
 				/* If it's a torch, now is the time to delete it */
@@ -578,7 +591,7 @@ void player_update_light(struct player *p)
 				}
 			} else if ((obj->timeout < 50) && (!(obj->timeout % 20))) {
 				/* The light is getting dim */
-				disturb(p, 0);
+				disturb(p);
 				msg("Your light is growing faint.");
 			}
 		}
@@ -594,23 +607,42 @@ void player_update_light(struct player *p)
  */
 struct object *player_best_digger(struct player *p, bool forbid_stack)
 {
+	int weapon_slot = slot_by_name(player, "weapon");
+	struct object *current_weapon = slot_object(player, weapon_slot);
 	struct object *obj, *best = NULL;
-	int best_score = 0;
+	/* Prefer any melee weapon over unarmed digging, i.e. best == NULL. */
+	int best_score = -1;
+	struct player_state local_state;
 
 	for (obj = p->gear; obj; obj = obj->next) {
-		int score = 0;
+		int score, old_number;
 		if (!tval_is_melee_weapon(obj)) continue;
 		if (obj->number < 1 || (forbid_stack && obj->number > 1)) continue;
-		if (tval_is_digger(obj)) {
-			if (of_has(obj->flags, OF_DIG_1))
-				score = 1;
-			else if (of_has(obj->flags, OF_DIG_2))
-				score = 2;
-			else if (of_has(obj->flags, OF_DIG_3))
-				score = 3;
+		/* Don't use it if it has a sticky curse. */
+		if (!obj_can_takeoff(obj)) continue;
+
+		/* Swap temporarily for the calc_bonuses() computation. */
+		old_number = obj->number;
+		if (obj != current_weapon) {
+			obj->number = 1;
+			p->body.slots[weapon_slot].obj = obj;
 		}
-		score += obj->modifiers[OBJ_MOD_TUNNEL]
-			* p->obj_k->modifiers[OBJ_MOD_TUNNEL];
+
+		/*
+		 * Avoid side effects from using update set to false
+		 * with calc_bonuses().
+		 */
+		local_state.stat_ind[STAT_STR] = 0;
+		local_state.stat_ind[STAT_DEX] = 0;
+		calc_bonuses(p, &local_state, true, false);
+		score = local_state.skills[SKILL_DIGGING];
+
+		/* Swap back. */
+		if (obj != current_weapon) {
+			obj->number = old_number;
+			player->body.slots[weapon_slot].obj = current_weapon;
+		}
+
 		if (score > best_score) {
 			best = obj;
 			best_score = score;
@@ -813,6 +845,38 @@ struct player_shape *player_shape_by_idx(int index)
 }
 
 /**
+ * Give shapechanged players a choice of returning to normal shape and
+ * performing a command, just returning to normal shape without acting, or
+ * canceling.
+ *
+ * \param p the player
+ * \param cmd the command being performed
+ * \return true if the player wants to proceed with their command
+ */
+bool player_get_resume_normal_shape(struct player *p, struct command *cmd)
+{
+	if (player_is_shapechanged(p)) {
+		msg("You cannot do this while in %s form.", p->shape->name);
+		char prompt[100];
+		strnfmt(prompt, sizeof(prompt),
+		        "Change back and %s (y/n) or (r)eturn to normal? ",
+		        cmd_verb(cmd->code));
+		char answer = get_char(prompt, "yrn", 3, 'n');
+
+		// Change back to normal shape
+		if (answer == 'y' || answer == 'r') {
+			player_resume_normal_shape(p);
+		}
+
+		// Players may only act if they return to normal shape
+		return answer == 'y';
+	}
+
+	// Normal shape players can proceed as usual
+	return true;
+}
+
+/**
  * Revert to normal shape
  */
 void player_resume_normal_shape(struct player *p)
@@ -824,9 +888,9 @@ void player_resume_normal_shape(struct player *p)
 	(void) player_clear_timed(p, TMD_ATT_VAMP, true);
 
 	/* Update */
-	player->upkeep->update |= (PU_BONUS);
-	player->upkeep->redraw |= (PR_TITLE | PR_MISC);
-	handle_stuff(player);
+	p->upkeep->update |= (PU_BONUS);
+	p->upkeep->redraw |= (PR_TITLE | PR_MISC);
+	handle_stuff(p);
 }
 
 /**
@@ -1010,7 +1074,8 @@ bool player_can_refuel(struct player *p, bool show_msg)
 }
 
 /**
- * Prerequiste function for command. See struct cmd_info in cmd-process.c.
+ * Prerequisite function for command. See struct cmd_info in ui-input.h and
+ * it's use in ui-game.c.
  */
 bool player_can_cast_prereq(void)
 {
@@ -1018,7 +1083,8 @@ bool player_can_cast_prereq(void)
 }
 
 /**
- * Prerequiste function for command. See struct cmd_info in cmd-process.c.
+ * Prerequisite function for command. See struct cmd_info in ui-input.h and
+ * it's use in ui-game.c.
  */
 bool player_can_study_prereq(void)
 {
@@ -1026,7 +1092,8 @@ bool player_can_study_prereq(void)
 }
 
 /**
- * Prerequiste function for command. See struct cmd_info in cmd-process.c.
+ * Prerequisite function for command. See struct cmd_info in ui-input.h and
+ * it's use in ui-game.c.
  */
 bool player_can_read_prereq(void)
 {
@@ -1034,7 +1101,8 @@ bool player_can_read_prereq(void)
 }
 
 /**
- * Prerequiste function for command. See struct cmd_info in cmd-process.c.
+ * Prerequisite function for command. See struct cmd_info in ui-input.h and
+ * it's use in ui-game.c.
  */
 bool player_can_fire_prereq(void)
 {
@@ -1042,12 +1110,31 @@ bool player_can_fire_prereq(void)
 }
 
 /**
- * Prerequiste function for command. See struct cmd_info in cmd-process.c.
+ * Prerequisite function for command. See struct cmd_info in ui-input.h and
+ * it's use in ui-game.c.
  */
 bool player_can_refuel_prereq(void)
 {
 	return player_can_refuel(player, true);
 }
+
+/**
+ * Prerequisite function for command. See struct cmd_info in ui-input.h and
+ * it's use in ui-game.c.
+ */
+bool player_can_debug_prereq(void)
+{
+	if (player->noscore & NOSCORE_DEBUG) {
+		return true;
+	}
+	if (confirm_debug()) {
+		/* Mark savefile */
+		player->noscore |= NOSCORE_DEBUG;
+		return true;
+	}
+	return false;
+}
+
 
 /**
  * Return true if the player has access to a book that has unlearned spells.
@@ -1241,7 +1328,7 @@ void player_resting_complete_special(struct player *p)
 	if (p->upkeep->resting == REST_ALL_POINTS) {
 		if ((p->chp == p->mhp) && (p->csp == p->msp))
 			/* Stop resting */
-			disturb(p, 0);
+			disturb(p);
 	} else if (p->upkeep->resting == REST_COMPLETE) {
 		if ((p->chp == p->mhp) &&
 			(p->csp == p->msp || player_has(p, PF_COMBAT_REGEN)) &&
@@ -1252,11 +1339,11 @@ void player_resting_complete_special(struct player *p)
 			!p->timed[TMD_PARALYZED] && !p->timed[TMD_IMAGE] &&
 			!p->word_recall && !p->deep_descent)
 			/* Stop resting */
-			disturb(p, 0);
+			disturb(p);
 	} else if (p->upkeep->resting == REST_SOME_POINTS) {
 		if ((p->chp == p->mhp) || (p->csp == p->msp))
 			/* Stop resting */
-			disturb(p, 0);
+			disturb(p);
 	}
 }
 
@@ -1334,11 +1421,11 @@ void player_place(struct chunk *c, struct player *p, struct loc grid)
  * The second arg is currently unused, but could induce output flush.
  *
  * All disturbance cancels repeated commands, resting, and running.
- * 
+ *
  * XXX-AS: Make callers either pass in a command
  * or call cmd_cancel_repeat inside the function calling this
  */
-void disturb(struct player *p, int stop_search)
+void disturb(struct player *p)
 {
 	/* Cancel repeated commands */
 	cmd_cancel_repeat();
@@ -1389,7 +1476,7 @@ void search(struct player *p)
 			if (square_issecretdoor(cave, grid)) {
 				msg("You have found a secret door.");
 				place_closed_door(cave, grid);
-				disturb(p, 0);
+				disturb(p);
 			}
 
 			/* Traps on chests */
@@ -1400,7 +1487,7 @@ void search(struct player *p)
 				if (obj->known->pval != obj->pval) {
 					msg("You have discovered a trap on the chest!");
 					obj->known->pval = obj->pval;
-					disturb(p, 0);
+					disturb(p);
 				}
 			}
 		}

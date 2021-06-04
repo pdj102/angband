@@ -90,6 +90,19 @@ const char *keycode_find_desc(keycode_t kc)
 
 
 /**
+ * Given a keycode, return whether it corresponds to a printable character.
+ */
+bool keycode_isprint(keycode_t kc)
+{
+	/*
+	 * Exclude ESCAPE (not part of the Unicode standard).  Otherwise,
+	 * treat the keycode as a Unicode code point.
+	 */
+	return kc != ESCAPE && utf32_isprint(kc);
+}
+
+
+/**
  * Convert a hexidecimal-digit into a decimal
  */
 static int dehex(char c)
@@ -152,6 +165,7 @@ void keypress_from_text(struct keypress *buf, size_t len, const char *str)
 				case '\\': STORE(buf, cur++, mods, '\\'); break;
 				case '^': STORE(buf, cur++, mods, '^'); break;
 				case '[': STORE(buf, cur++, mods, '['); break;
+				case '{': STORE(buf, cur++, mods, '{'); break;
 				default: STORE(buf, cur++, mods, *str); break;
 			}
 
@@ -263,6 +277,7 @@ void keypress_to_text(char *buf, size_t len, const struct keypress *src,
 				}
 				case '^': strnfcat(buf, len, &end, "\\^"); break;
 				case '[': strnfcat(buf, len, &end, "\\["); break;
+				case '{': strnfcat(buf, len, &end, "\\{"); break;
 				default: {
 					if (i < 127)
 						strnfcat(buf, len, &end, "%c", i);

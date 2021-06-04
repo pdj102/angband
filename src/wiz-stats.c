@@ -19,11 +19,11 @@
 #include "cave.h"
 #include "cmds.h"
 #include "effects.h"
-#include "game-input.h"
 #include "generate.h"
 #include "init.h"
 #include "mon-make.h"
 #include "monster.h"
+#include "obj-init.h"
 #include "obj-pile.h"
 #include "obj-randart.h"
 #include "obj-tval.h"
@@ -203,7 +203,7 @@ stat_code;
 struct stat_data
 {
 	stat_code st;
-	char *name;
+	const char *name;
 };
 
 static const struct stat_data stat_message[] =
@@ -344,7 +344,7 @@ struct stat_ff_data
 {
 	stat_first_find st_ff;
 	stat_code st;
-	char *name;
+	const char *name;
 };
 
 static const struct stat_ff_data stat_ff_message[] =
@@ -391,7 +391,7 @@ static double uniq_total[MAX_LVL], uniq_ood[MAX_LVL], uniq_deadly[MAX_LVL];
 
 
 /* set everything to 0.0 to begin */
-static void init_stat_vals()
+static void init_stat_vals(void)
 {
 	int i,j,k;
 
@@ -1083,7 +1083,7 @@ static void get_obj_data(const struct object *obj, int y, int x, bool mon,
  * It also replaces drop near with a new function that drops all 
  * the items on the exact square that the monster was on.
  */
-void monster_death_stats(int m_idx)
+static void monster_death_stats(int m_idx)
 {
 	struct object *obj;
 	struct monster *mon;
@@ -1531,6 +1531,11 @@ static void clearing_stats(void)
 			/* Get seed */
 			int seed_randart = randint0(0x10000000);
 
+			/* Restore the standard artifacts */
+			cleanup_parser(&randart_parser);
+			deactivate_randart_file();
+			run_parser(&artifact_parser);
+
 			/* regen randarts */
 			do_randart(seed_randart, false);
 		}
@@ -1553,6 +1558,18 @@ static void clearing_stats(void)
 		msg("Iteration %d complete",iter);
 	}
 
+	/* Restore original artifacts */
+	if (regen) {
+		cleanup_parser(&randart_parser);
+		if (OPT(player, birth_randarts)) {
+			activate_randart_file();
+			run_parser(&randart_parser);
+			deactivate_randart_file();
+		} else {
+			run_parser(&artifact_parser);
+		}
+	}
+
 	/* Print to file */
 	for (depth = 0 ;depth < MAX_LVL; depth++)
 		print_stats(depth);
@@ -1565,84 +1582,44 @@ static void clearing_stats(void)
 }
 
 /**
- * Prompt the user for sim type and number of sims for a stats run
+ * Check whether statistic collection is enabled.  Prints a message if it is
+ * not.
+ *
+ * \return true if statistics were enabled at compile time; otherwise, return
+ * false.
  */
-static int stats_prompt(void)
+bool stats_are_enabled(void)
 {
-	static int temp,simtype = 1;
-	static char tmp_val[100];
-	static char prompt[50];
-
-	/* This is the prompt for no. of tries*/
-	strnfmt(prompt, sizeof(prompt), "Num of simulations: ");
-
-	/* This is the default value (50) */
-	strnfmt(tmp_val, sizeof(tmp_val), "%d", tries);
-
-	/* Ask for the input */
-	if (!get_string(prompt, tmp_val, 7)) return 0;
-
-	/* Get the new value */
-	temp = atoi(tmp_val);
-
-	/* Convert */
-	if (temp < 1) temp = 1;
-
-	/* Save */
-	tries = temp;
-
-	/* Set 'value to add' for arrays */
-	addval = 1.0 / tries;
-
-	/* Get info on what type of run to do */
-	strnfmt(prompt, sizeof(prompt), "Type of Sim: Diving (1) or Clearing (2) ");
-
-	/* Set default */
-	strnfmt(tmp_val, sizeof(tmp_val), "%d", simtype);
-
-	/* Get the input */
-	if (!get_string(prompt, tmp_val, 4)) return 0;
-
-	temp = atoi(tmp_val);
-
-	/* Make sure that the type is good */
-	if ((temp == 1) || (temp == 2))
-		simtype = temp;
-	else
-		return 0;
-
-	/* For clearing sim, check for randart regen */
-	if (temp == 2) {
-		/* Prompt */
-		strnfmt(prompt, sizeof(prompt), "Regen randarts? (warning SLOW)");
-
-		regen = get_check(prompt) ? true : false;
-	}
-
-	return simtype;
+	return true;
 }
 
 /**
- * This is the function called from wiz-debug.c.
+ * Generate levels and collect statistics about the objects and monsters
+ * in those levels.
+ *
+ * \param nsim Is the number of simulations to perform.
+ * \param simtype Must be either 1 for a diving simulation, 2 for a clearing
+ * simulation, or 3 for a clearing simulation with a regeneration of the
+ * random artifacts between each simulation.
  */
-void stats_collect(void)
+void stats_collect(int nsim, int simtype)
 {
-	static int simtype;
-	static bool auto_flag;
+	bool auto_flag;
 	char buf[1024];
 
-	/* Prompt the user for sim params */
-	simtype = stats_prompt();
+	/* Make sure the inputs are good! */
+	if (nsim < 1 || simtype < 1 || simtype > 3) return;
 
-	/* Make sure the results are good! */
-	if (!((simtype == 1) || (simtype == 2)))
-		return; 
+	tries = nsim;
+	addval = 1.0 / tries;
 
 	/* Are we in diving or clearing mode */
-	if (simtype == 2)
-		clearing = true;
-	else
+	if (simtype == 1) {
 		clearing = false;
+	} else {
+		clearing = true;
+		regen = (simtype == 3);
+	}
 
 	/* Open log file */
 	path_build(buf, sizeof(buf), ANGBAND_DIR_USER, "stats.log");
@@ -1694,42 +1671,50 @@ void stats_collect(void)
 
 #define DIST_MAX 10000
 
-void calc_cave_distances(int **cave_dist)
+static void calc_cave_distances(int **cave_dist)
 {
-	int dist, i;
-	int oy, ox, ty, tx, d;
+	int dist;
 
 	/* Squares with distance from player of n - 1 */
-	int d_x_old[DIST_MAX];
-	int d_y_old[DIST_MAX];
-	int d_old_max;
+	struct loc *ogrids;
+	int n_old, cap_old;
 
 	/* Squares with distance from player of n */
-	int d_x_new[DIST_MAX];
-	int d_y_new[DIST_MAX];
-	int d_new_max;
+	struct loc *ngrids;
+	int n_new, cap_new;
 
-	/* Get player location */
-	oy = d_y_old[0] = player->grid.y;
-	ox = d_x_old[0] = player->grid.x;
-	d_old_max = 1;
+	/*
+	 * The perimeter of the cave should overestimate the space needed so
+	 * there's fewer reallocations within the loop.
+	 */
+	cap_old = 2 * (cave->width + cave->height - 1);
+	ogrids = mem_alloc(cap_old * sizeof(*ogrids));
+	cap_new = cap_old;
+	ngrids = mem_alloc(cap_new * sizeof(*ngrids));
+
+	/* The player's location is the first one to test. */
+	ogrids[0] = player->grid;
+	n_old = 1;
 
 	/* Distance from player starts at 0 */
 	dist = 0;
 
 	/* Assign the distance value to the first square (player) */
-	cave_dist[oy][ox] = dist;
+	cave_dist[ogrids[0].y][ogrids[0].x] = dist;
 
 	do {
-		d_new_max = 0;
+		int i, n_tmp;
+		struct loc *gtmp;
+
+		n_new = 0;
 		dist++;
 
 		/* Loop over all visited squares of the previous iteration */
-		for (i = 0; i < d_old_max; i++){
-
+		for (i = 0; i < n_old; i++){
+			int d;
 			/* Get the square we want to look at */
-			oy = d_y_old[i];
-			ox = d_x_old[i];
+			int oy = ogrids[i].y;
+			int ox = ogrids[i].x;
 
 			/* debug
 			msg("x: %d y: %d dist: %d %d ",ox,oy,dist-1,i); */
@@ -1737,86 +1722,70 @@ void calc_cave_distances(int **cave_dist)
 			/* Get all adjacent squares */
 			for (d = 0; d < 8; d++) {
 				/* Adjacent square location */
-				ty = oy + ddy_ddd[d];
-				tx = ox + ddx_ddd[d];
+				int ty = oy + ddy_ddd[d];
+				int tx = ox + ddx_ddd[d];
 
 				if (!(square_in_bounds_fully(cave, loc(tx, ty)))) continue;
 
 				/* Have we been here before? */
 				if (cave_dist[ty][tx] >= 0) continue;
 
-				/* Is it a wall? */
-				if (square_iswall(cave, loc(tx, ty))) continue;
+				/*
+				 * Impassable terrain which isn't a door or
+				 * rubble blocks progress.
+				 */
+				if (!square_ispassable(cave, loc(tx, ty)) &&
+					!square_isdoor(cave, loc(tx, ty)) &&
+					!square_isrubble(cave, loc(tx, ty))) continue;
 
 				/* Add the new location */
-				d_y_new[d_new_max] = ty;
-				d_x_new[d_new_max] = tx;
+				if (n_new == cap_new - 1) {
+					cap_new *= 2;
+					ngrids = mem_realloc(ngrids,
+						cap_new * sizeof(ngrids));
+				}
+				ngrids[n_new].y = ty;
+				ngrids[n_new].x = tx;
+				++n_new;
 
 				/* Assign the distance to that spot */
 				cave_dist[ty][tx] = dist;
-
-				d_new_max++;
 
 				/* debug
 				msg("x: %d y: %d dist: %d ",tx,ty,dist); */
 			}
 		}
 
-		/* Copy the new distance list to the old one */
-		for (i = 0; i < d_new_max; i++) {
-			d_y_old[i] = d_y_new[i];
-			d_x_old[i] = d_x_new[i];
-		}
-		d_old_max = d_new_max;
+		/* Swap the lists; do not need to preserve n_old. */
+		gtmp = ogrids;
+		ogrids = ngrids;
+		ngrids = gtmp;
+		n_tmp = cap_old;
+		cap_old = cap_new;
+		cap_new = n_tmp;
+		n_old = n_new;
+	} while (n_old > 0 && dist < DIST_MAX);
 
-	} while ((d_old_max > 0) || dist == DIST_MAX);
+	mem_free(ngrids);
+	mem_free(ogrids);
 }
 
-void pit_stats(void)
+/**
+ * Generate several pits and collect statistics about the type of inhabitants.
+ *
+ * \param nsim Is the number of pits to generate.
+ * \param pittype Must be 1 (pit), 2 (nest), or 3 (other).
+ * \param depth Is the depth to use for the simulations.
+ */
+void pit_stats(int nsim, int pittype, int depth)
 {
-	int tries = 1000;
-	int depth = 0;
-	int hist[z_info->pit_max];
+	int *hist;
 	int j, p;
-	int type = 1;
-
-	char tmp_val[100];
 
 	/* Initialize hist */
-	for (p = 0; p < z_info->pit_max; p++)
-		hist[p] = 0;
+	hist = mem_zalloc(z_info->pit_max * sizeof(*hist));
 
-	/* Format default value */
-	strnfmt(tmp_val, sizeof(tmp_val), "%d", tries);
-
-	/* Ask for the input - take the first 7 characters*/
-	if (!get_string("Num of simulations: ", tmp_val, 7)) return;
-
-	/* Get the new value */
-	tries = atoi(tmp_val);
-	if (tries < 1) tries = 1;
-
-	/* Format second default value */
-	strnfmt(tmp_val, sizeof(tmp_val), "%d", type);
-
-	/* Ask for the input - take the first 7 characters*/
-	if (!get_string("Pit type: ", tmp_val, 7)) return;
-
-	/* get the new value */
-	type = atoi(tmp_val);
-	if (type < 1) type = 1;
-
-	/* Format second default value */
-	strnfmt(tmp_val, sizeof(tmp_val), "%d", player->depth);
-
-	/* Ask for the input - take the first 7 characters*/
-	if (!get_string("Depth: ", tmp_val, 7)) return;
-
-	/* get the new value */
-	depth = atoi(tmp_val);
-	if (depth < 1) depth = 1;
-
-	for (j = 0; j < tries; j++) {
+	for (j = 0; j < nsim; j++) {
 		int i;
 		int pit_idx = 0;
 		int pit_dist = 999;
@@ -1825,7 +1794,7 @@ void pit_stats(void)
 			int offset, dist;
 			struct pit_profile *pit = &pit_info[i];
 
-			if (!pit->name || pit->room_type != type) continue;
+			if (!pit->name || pit->room_type != pittype) continue;
 
 			offset = Rand_normal(pit->ave, 10);
 			dist = ABS(offset - depth);
@@ -1845,6 +1814,8 @@ void pit_stats(void)
 			msg("Type: %s, Number: %d.", pit->name, hist[p]);
 	}
 
+	mem_free(hist);
+
 	return;
 }
 
@@ -1853,7 +1824,7 @@ void pit_stats(void)
  * Gather whether the dungeon has disconnects in it and whether the player
  * is disconnected from the stairs
  */
-void disconnect_stats(void)
+void disconnect_stats(int nsim, bool stop_on_disconnect)
 {
 	int i, y, x;
 
@@ -1861,32 +1832,17 @@ void disconnect_stats(void)
 
 	bool has_dsc, has_dsc_from_stairs;
 
-	static int temp;
-	static char tmp_val[100];
-	static char prompt[50];
-
 	long dsc_area = 0, dsc_from_stairs = 0;
+	char path[1024];
+	ang_file *disfile;
 
-	/* This is the prompt for no. of tries */
-	strnfmt(prompt, sizeof(prompt), "Num of simulations: ");
+	path_build(path, sizeof(path), ANGBAND_DIR_USER, "disconnect.html");
+	disfile = file_open(path, MODE_WRITE, FTYPE_TEXT);
+	if (disfile) {
+		dump_level_header(disfile, "Disconnected Levels");
+	}
 
-	/* This is the default value (50) */
-	strnfmt(tmp_val, sizeof(tmp_val), "%d", tries);
-
-	/* Ask for the input */
-	if (!get_string(prompt,tmp_val,7)) return;
-
-	/* Get the new value */
-	temp = atoi(tmp_val);
-
-	/* Try at least once */
-	if (temp < 1)
-		temp = 1;
-
-	/* Save */
-	tries = temp;
-
-	for (i = 1; i <= tries; i++) {
+	for (i = 1; i <= nsim; i++) {
 		/* Assume no disconnected areas */
 		has_dsc = false;
 
@@ -1914,8 +1870,14 @@ void disconnect_stats(void)
 			for (x = 1; x < cave->width - 1; x++) {
 				struct loc grid = loc(x, y);
 
-				/* Don't care about walls */
-				if (square_iswall(cave, grid)) continue;
+				/*
+				 * Don't care about impassable terrain that's
+				 * not a closed or secret door or impassable
+				 * rubble.
+				 */
+				if (!square_ispassable(cave, grid) &&
+					!square_isdoor(cave, grid) &&
+					!square_isrubble(cave, grid)) continue;
 
 				/* Can we get there? */
 				if (cave_dist[y][x] >= 0) {
@@ -1943,16 +1905,28 @@ void disconnect_stats(void)
 
 		if (has_dsc) dsc_area++;
 
-		msg("Iteration: %d",i); 
+		if (has_dsc || has_dsc_from_stairs) {
+			if (disfile) {
+				dump_level_body(disfile, "Disconnected Level",
+					cave, cave_dist);
+			}
+			if (stop_on_disconnect) i = nsim;
+		}
 
 		/* Free arrays */
-		for (y = 0; x < cave->height; x++)
+		for (y = 0; y < cave->height; y++)
 			mem_free(cave_dist[y]);
 		mem_free(cave_dist);
 	}
 
 	msg("Total levels with disconnected areas: %ld",dsc_area);
 	msg("Total levels isolated from stairs: %ld",dsc_from_stairs);
+	if (disfile) {
+		dump_level_footer(disfile);
+		if (file_close(disfile)) {
+			msg("Map is in disconnect.html.");
+		}
+	}
 
 	/* Redraw the level */
 	do_cmd_redraw();
@@ -1961,18 +1935,21 @@ void disconnect_stats(void)
 
 #else /* USE_STATS */
 
-void stats_collect(void)
+bool stats_are_enabled(void)
 {
 	msg("Statistics generation not turned on in this build.");
+	return false;
 }
 
-void disconnect_stats(void)
+void stats_collect(int nsim, int simtype)
 {
-	msg("Statistics generation not turned on in this build.");
 }
 
-void pit_stats(void)
+void disconnect_stats(int nsim, bool stop_on_disconnect)
 {
-	msg("Statistics generation not turned on in this build.");
+}
+
+void pit_stats(int nsim, int pittype, int depth)
+{
 }
 #endif /* USE_STATS */

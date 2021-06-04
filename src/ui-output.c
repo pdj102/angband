@@ -153,13 +153,15 @@ void textui_textblock_place(textblock *tb, region orig_area, const char *header)
 /**
  * Show a textblock interactively
  */
-void textui_textblock_show(textblock *tb, region orig_area, const char *header)
+struct keypress textui_textblock_show(textblock *tb, region orig_area, const char *header)
 {
 	/* xxx on resize this should be recalculated */
 	region area = region_calculate(orig_area);
 
 	size_t *line_starts = NULL, *line_lengths = NULL;
 	size_t n_lines;
+
+	struct keypress ch = KEYPRESS_NULL;
 
 	n_lines = textblock_calculate_lines(tb,
 			&line_starts, &line_lengths, area.width);
@@ -183,8 +185,7 @@ void textui_textblock_show(textblock *tb, region orig_area, const char *header)
 				area.row + area.page_rows + 1, area.col);
 
 		/* Pager mode */
-		while (1) {
-			struct keypress ch;
+		while (1) {			
 
 			display_area(textblock_text(tb), textblock_attrs(tb), line_starts,
 					line_lengths, n_lines, area, start_line);
@@ -192,7 +193,7 @@ void textui_textblock_show(textblock *tb, region orig_area, const char *header)
 			ch = inkey();
 			if (ch.code == ARROW_UP)
 				start_line--;
-			else if (ch.code == ESCAPE || ch.code == 'q')
+			else if (ch.code == ESCAPE || ch.code == 'q' || ch.code == 'x')
 				break;
 			else if (ch.code == ']' || ch.code == '[')
 				/* Special case to deal with monster and object lists -
@@ -215,7 +216,7 @@ void textui_textblock_show(textblock *tb, region orig_area, const char *header)
 		c_prt(COLOUR_WHITE, "", area.row + n_lines, area.col);
 		c_prt(COLOUR_L_BLUE, "(Press any key to continue.)",
 				area.row + n_lines + 1, area.col);
-		inkey();
+		ch = inkey();
 	}
 
 	mem_free(line_starts);
@@ -223,7 +224,7 @@ void textui_textblock_show(textblock *tb, region orig_area, const char *header)
 
 	screen_load();
 
-	return;
+	return (ch);
 }
 
 
@@ -292,7 +293,7 @@ void text_out_to_screen(byte a, const char *str)
 		}
 
 		/* Clean up the char */
-		ch = (iswprint(*s) ? *s : L' ');
+		ch = (text_iswprint(*s) ? *s : L' ');
 
 		/* Wrap words as needed */
 		if ((x >= wrap - 1) && (ch != L' ')) {
@@ -436,10 +437,6 @@ void screen_load(void)
 	event_signal(EVENT_MESSAGE_FLUSH);
 	Term_load();
 	screen_save_depth--;
-
-	/* Redraw big graphics */
-	if (screen_save_depth == 0 && (tile_width > 1 || tile_height > 1))
-		Term_redraw();
 }
 
 bool textui_map_is_visible(void)
@@ -467,19 +464,19 @@ void window_make(int origin_x, int origin_y, int end_x, int end_y)
 
 	region_erase(&to_clear);
 
-	Term_putch(origin_x, origin_y, COLOUR_WHITE, '+');
-	Term_putch(end_x, origin_y, COLOUR_WHITE, '+');
-	Term_putch(origin_x, end_y, COLOUR_WHITE, '+');
-	Term_putch(end_x, end_y, COLOUR_WHITE, '+');
+	Term_putch(origin_x, origin_y, COLOUR_WHITE, L'+');
+	Term_putch(end_x, origin_y, COLOUR_WHITE, L'+');
+	Term_putch(origin_x, end_y, COLOUR_WHITE, L'+');
+	Term_putch(end_x, end_y, COLOUR_WHITE, L'+');
 
 	for (n = 1; n < (end_x - origin_x); n++) {
-		Term_putch(origin_x + n, origin_y, COLOUR_WHITE, '-');
-		Term_putch(origin_x + n, end_y, COLOUR_WHITE, '-');
+		Term_putch(origin_x + n, origin_y, COLOUR_WHITE, L'-');
+		Term_putch(origin_x + n, end_y, COLOUR_WHITE, L'-');
 	}
 
 	for (n = 1; n < (end_y - origin_y); n++) {
-		Term_putch(origin_x, origin_y + n, COLOUR_WHITE, '|');
-		Term_putch(end_x, origin_y + n, COLOUR_WHITE, '|');
+		Term_putch(origin_x, origin_y + n, COLOUR_WHITE, L'|');
+		Term_putch(end_x, origin_y + n, COLOUR_WHITE, L'|');
 	}
 }
 
@@ -487,8 +484,10 @@ bool panel_should_modify(term *t, int wy, int wx)
 {
 	int dungeon_hgt = cave->height;
 	int dungeon_wid = cave->width;
-	int screen_hgt = (t == angband_term[0]) ? SCREEN_HGT : t->hgt;
-	int screen_wid = (t == angband_term[0]) ? SCREEN_WID : t->wid;
+	int screen_hgt = (t == angband_term[0]) ?
+		SCREEN_HGT : t->hgt / tile_height;
+	int screen_wid = (t == angband_term[0]) ?
+		SCREEN_WID : t->wid / tile_width;
 
 	/* Verify wy, adjust if needed */
 	if (wy > dungeon_hgt - screen_hgt) wy = dungeon_hgt - screen_hgt;
@@ -517,8 +516,10 @@ bool modify_panel(term *t, int wy, int wx)
 {
 	int dungeon_hgt = cave->height;
 	int dungeon_wid = cave->width;
-	int screen_hgt = (t == angband_term[0]) ? SCREEN_HGT : t->hgt;
-	int screen_wid = (t == angband_term[0]) ? SCREEN_WID : t->wid;
+	int screen_hgt = (t == angband_term[0]) ?
+		SCREEN_HGT : t->hgt / tile_height;
+	int screen_wid = (t == angband_term[0]) ?
+		SCREEN_WID : t->wid / tile_width;
 
 	/* Verify wy, adjust if needed */
 	if (wy > dungeon_hgt - screen_hgt) wy = dungeon_hgt - screen_hgt;
@@ -536,9 +537,6 @@ bool modify_panel(term *t, int wy, int wx)
 
 		/* Redraw map */
 		player->upkeep->redraw |= (PR_MAP);
-
-		/* Redraw for big graphics */
-		if ((tile_width > 1) || (tile_height > 1)) redraw_stuff(player);
 
 		/* Changed */
 		return (true);
@@ -568,7 +566,7 @@ static void verify_panel_int(bool centered)
 		if (!t) continue;
 
 		/* No relevant flags */
-		if ((j > 0) && !(window_flag[j] & (PW_MAPS))) continue;
+		if ((j > 0) && !(window_flag[j] & (PW_OVERHEAD))) continue;
 
 		wy = t->offset_y;
 		wx = t->offset_x;
@@ -624,7 +622,7 @@ bool change_panel(int dir)
 		if (!t) continue;
 
 		/* No relevant flags */
-		if ((j > 0) && !(window_flag[j] & PW_MAPS)) continue;
+		if ((j > 0) && !(window_flag[j] & PW_OVERHEAD)) continue;
 
 		screen_hgt = (j == 0) ? SCREEN_HGT : t->hgt / tile_height;
 		screen_wid = (j == 0) ? SCREEN_WID : t->wid / tile_width;
@@ -680,7 +678,12 @@ bool textui_panel_contains(unsigned int y, unsigned int x)
 	unsigned int wid;
 	if (!Term)
 		return true;
-	hgt = SCREEN_HGT;
-	wid = SCREEN_WID;
+	if (Term == term_screen) {
+		hgt = SCREEN_HGT;
+		wid = SCREEN_WID;
+	} else {
+		hgt = Term->hgt / tile_height;
+		wid = Term->wid / tile_width;
+	}
 	return (y - Term->offset_y) < hgt && (x - Term->offset_x) < wid;
 }

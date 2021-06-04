@@ -241,7 +241,7 @@ struct start_item {
 	int sval;	/**< Object sub-type  */
 	int min;	/**< Minimum starting amount */
 	int max;	/**< Maximum starting amount */
-
+	int *eopts;     /**< Indices (zero terminated array) for birth options which can exclude item */
 	struct start_item *next;
 };
 
@@ -407,7 +407,7 @@ struct player_state {
 
 	int num_blows;		/**< Number of blows x100 */
 	int num_shots;		/**< Number of shots x10 */
-	int num_moves;		/**< Number of movement actions */
+	int num_moves;		/**< Number of extra movement actions */
 
 	int ammo_mult;		/**< Ammo multiplier */
 	int ammo_tval;		/**< Ammo variety */

@@ -155,6 +155,14 @@ bool monster_is_evil(const struct monster *mon)
 }
 
 /**
+ * Monster can be frightened
+ */
+bool monster_is_fearful(const struct monster *mon)
+{
+	return rf_has(mon->race->flags, RF_NO_FEAR) ? false : true;
+}
+
+/**
  * Monster is powerful
  */
 bool monster_is_powerful(const struct monster *mon)
@@ -282,5 +290,21 @@ bool monster_can_be_scared(const struct monster *mon)
 			}
 		}
 	}
+	return true;
+}
+
+/**
+ * Monster attracted to a decoy, not the player
+ */
+bool monster_is_decoyed(const struct monster *mon)
+{
+	struct loc decoy = cave_find_decoy(cave);
+
+	/* No decoy */
+	if (loc_is_zero(decoy)) return false;
+
+	/* Monster can't see the decoy */
+	if (!los(cave, mon->grid, decoy)) return false;
+
 	return true;
 }

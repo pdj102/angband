@@ -29,11 +29,9 @@ enum chest_query {
 	CHEST_TRAPPED
 };
 
-struct chest_trap *chest_traps;
-struct chest *chests;
 extern struct file_parser chest_trap_parser;
 
-char *chest_trap_name(const struct object *obj);
+const char *chest_trap_name(const struct object *obj);
 bool is_trapped_chest(const struct object *obj);
 bool is_locked_chest(const struct object *obj);
 int pick_chest_traps(struct object *obj);

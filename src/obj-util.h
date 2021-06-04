@@ -54,6 +54,7 @@ bool obj_can_takeoff(const struct object *obj);
 bool obj_can_wear(const struct object *obj);
 bool obj_can_fire(const struct object *obj);
 bool obj_is_throwing(const struct object *obj);
+bool obj_is_known_artifact(const struct object *obj);
 bool obj_has_inscrip(const struct object *obj);
 bool obj_has_flag(const struct object *obj, int flag);
 bool obj_is_useable(const struct object *obj);
@@ -65,7 +66,7 @@ int get_use_device_chance(const struct object *obj);
 void distribute_charges(struct object *source, struct object *dest, int amt);
 int number_charging(const struct object *obj);
 bool recharge_timeout(struct object *obj);
-bool verify_object(const char *prompt, struct object *obj);
+bool verify_object(const char *prompt, const struct object *obj);
 void print_custom_message(struct object *obj, const char *string, int msg_type);
 
 

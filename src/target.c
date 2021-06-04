@@ -223,7 +223,7 @@ void target_release(void)
 	/* If the old target is a now-dead monster, cancel it */
 	if (old_target.midx != 0) {
 		struct monster *mon = cave_monster(cave, old_target.midx);
-		if (!mon || !mon->race) {
+		if (!mon || !mon->race || !monster_is_in_view(mon)) {
 			target.grid.y = 0;
 			target.grid.x = 0;
 		}
@@ -327,13 +327,13 @@ bool target_accept(int y, int x)
 	struct object *obj;
 
 	/* Player grids are always interesting */
-	if (square(cave, grid).mon < 0) return true;
+	if (square(cave, grid)->mon < 0) return true;
 
 	/* Handle hallucination */
 	if (player->timed[TMD_IMAGE]) return false;
 
 	/* Obvious monsters */
-	if (square(cave, grid).mon > 0) {
+	if (square(cave, grid)->mon > 0) {
 		struct monster *mon = square_monster(cave, grid);
 		if (monster_is_obvious(mon)) {
 			return true;

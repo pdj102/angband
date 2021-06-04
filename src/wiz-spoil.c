@@ -31,9 +31,7 @@
 #include "obj-tval.h"
 #include "obj-util.h"
 #include "object.h"
-#include "ui-input.h"
 #include "ui-knowledge.h"
-#include "ui-menu.h"
 #include "ui-mon-lore.h"
 #include "wizard.h"
 #include "z-file.h"
@@ -176,8 +174,11 @@ static void kind_info(char *buf, size_t buf_len, char *dam, size_t dam_len,
 		strnfmt(wgt, wgt_len, "%3d.%d", obj->weight / 10, obj->weight % 10);
 
 	/* Hack */
-	if (!dam)
+	if (!dam) {
+		object_delete(&known_obj);
+		object_delete(&obj);
 		return;
+	}
 
 	/* Misc info */
 	dam[0] = '\0';
@@ -196,7 +197,7 @@ static void kind_info(char *buf, size_t buf_len, char *dam, size_t dam_len,
 /**
  * Create a spoiler file for items
  */
-static void spoil_obj_desc(const char *fname)
+void spoil_obj_desc(const char *fname)
 {
 	int i, k, s, t, n = 0;
 	u16b *who;
@@ -257,13 +258,34 @@ static void spoil_obj_desc(const char *fname)
 			for (s = 0; s < n; s++) {
 				int e;
 				s32b v;
+				size_t u8len;
 
 				/* Describe the kind */
 				kind_info(buf, sizeof(buf), dam, sizeof(dam), wgt, sizeof(wgt),
 						  &e, &v, who[s]);
 
 				/* Dump it */
-				file_putf(fh, "  %-51s%7s%6s%4d%9ld\n", buf, dam, wgt, e,
+				/*
+				 * Per C99, width specifications to %s measure
+				 * bytes.  To align the columns if the
+				 * description has characters that take
+				 * multiple bytes, handle the first column
+				 * separately.  If the description has
+				 * decomposed characters (ones where multiple
+				 * Unicode code points combine to form one
+				 * printed character), the following columns
+				 * will still be out of alignment, but they'll
+				 * be closer to aligned than what the standard
+				 * library functions would do.
+				 */
+				u8len = utf8_strlen(buf);
+				if (u8len < 51) {
+					file_putf(fh, "  %s%*s", buf,
+						(int) (51 - u8len), " ");
+				} else {
+					file_putf(fh, "  %s", buf);
+				}
+				file_putf(fh, "%7s%6s%4d%9ld\n", dam, wgt, e,
 						  (long)(v));
 			}
 
@@ -348,7 +370,7 @@ static const grouper group_artifact[] =
 /**
  * Create a spoiler file for artifacts
  */
-static void spoil_artifact(const char *fname)
+void spoil_artifact(const char *fname)
 {
 	int i, j;
 	char buf[1024];
@@ -459,7 +481,7 @@ static void spoil_artifact(const char *fname)
 /**
  * Create a brief spoiler file for monsters
  */
-static void spoil_mon_desc(const char *fname)
+void spoil_mon_desc(const char *fname)
 {
 	int i, n = 0;
 
@@ -513,6 +535,7 @@ static void spoil_mon_desc(const char *fname)
 	for (i = 0; i < n; i++) {
 		struct monster_race *race = &r_info[who[i]];
 		const char *name = race->name;
+		size_t u8len;
 
 		/* Get the "name" */
 		if (rf_has(race->flags, RF_QUESTOR))
@@ -547,9 +570,22 @@ static void spoil_mon_desc(const char *fname)
 		strnfmt(exp, sizeof(exp), "%s '%c'", attr_to_text(race->d_attr),
 				race->d_char);
 
-		/* Dump the info */
-		file_putf(fh, "%-40.40s%4s%4s%6s%8s%4s  %11.11s\n",
-		        nam, lev, rar, spd, hp, ac, exp);
+		/*
+		 * Dump the info.  The rationale for handling the first column
+		 * separately is the same as in spoil_obj_desc():  better
+		 * alignment if there are multibyte characters in the name.
+		 */
+		u8len = utf8_strlen(nam);
+		if (u8len < 40) {
+			file_putf(fh, "%s%*s", nam, (int) (40 - u8len), " ");
+		} else {
+			if (u8len > 40) {
+				utf8_clipto(nam, 40);
+			}
+			file_putf(fh, "%s", nam);
+		}
+		file_putf(fh, "%4s%4s%6s%8s%4s  %11.11s\n",
+		        lev, rar, spd, hp, ac, exp);
 	}
 
 	/* End it */
@@ -580,7 +616,7 @@ static void spoil_mon_desc(const char *fname)
 /**
  * Create a spoiler file for monsters (-SHAWN-)
  */
-static void spoil_mon_info(const char *fname)
+void spoil_mon_info(const char *fname)
 {
 	char buf[1024];
 	int i, n;
@@ -635,9 +671,9 @@ static void spoil_mon_info(const char *fname)
 
 		/* As of 3.5, race->name and race->text are stored as UTF-8 strings;
 		 * there is no conversion from the source edit files. */
-		textblock_append_utf8(tb, race->name);
+		textblock_append(tb, "%s", race->name);
 		textblock_append(tb, "  (");	/* ---)--- */
-		textblock_append(tb, attr_to_text(race->d_attr));
+		textblock_append(tb, "%s", attr_to_text(race->d_attr));
 		textblock_append(tb, " '%c')\n", race->d_char);
 
 		/* Line 2: number, level, rarity, speed, HP, AC, exp */
@@ -674,46 +710,4 @@ static void spoil_mon_info(const char *fname)
 	}
 
 	msg("Successfully created a spoiler file.");
-}
-
-static void spoiler_menu_act(const char *title, int row)
-{
-	if (row == 0)
-		spoil_obj_desc("obj-desc.spo");
-	else if (row == 1)
-		spoil_artifact("artifact.spo");
-	else if (row == 2)
-		spoil_mon_desc("mon-desc.spo");
-	else if (row == 3)
-		spoil_mon_info("mon-info.spo");
-
-	event_signal(EVENT_MESSAGE_FLUSH);
-}
-
-static struct menu *spoil_menu;
-static menu_action spoil_actions[] =
-{
-	{ 0, 0, "Brief Object Info (obj-desc.spo)",		spoiler_menu_act },
-	{ 0, 0, "Brief Artifact Info (artifact.spo)",	spoiler_menu_act },
-	{ 0, 0, "Brief Monster Info (mon-desc.spo)",	spoiler_menu_act },
-	{ 0, 0, "Full Monster Info (mon-info.spo)",		spoiler_menu_act },
-};
-
-
-/**
- * Create Spoiler files
- */
-void do_cmd_spoilers(void)
-{
-	if (!spoil_menu) {
-		spoil_menu = menu_new_action(spoil_actions, N_ELEMENTS(spoil_actions));
-		spoil_menu->selections = lower_case;
-		spoil_menu->title = "Create spoilers";
-	}
-
-	screen_save();
-	clear_from(0);
-	menu_layout(spoil_menu, &SCREEN_REGION);
-	menu_select(spoil_menu, 0, false);
-	screen_load();
 }

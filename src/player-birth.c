@@ -508,6 +508,76 @@ void wield_all(struct player *p)
 
 
 /**
+ * Initialize the global player as if the full birth process happened.
+ * \param nrace Is the name of the race to use.  It may be NULL to use *races.
+ * \param nclass Is the name of the class to use.  It may be NULL to use
+ * *classes.
+ * \param nplayer Is the name to use for the player.  It may be NULL.
+ * \return The return value will be true if the full birth process will be
+ * successful.  It will be false if the process failed.  One reason for that
+ * would be that the requested race or class could not be found.
+ * Requires a prior call to init_angband().  Intended for use by test cases
+ * or stub front ends that need a fully initialized player.
+ */
+bool player_make_simple(const char *nrace, const char *nclass,
+	const char* nplayer)
+{
+	int ir = 0, ic = 0;
+
+	if (nrace) {
+		const struct player_race *rc = races;
+		int nr = 0;
+
+		while (1) {
+			if (!rc) return false;
+			if (streq(rc->name, nrace)) break;
+			rc = rc->next;
+			++ir;
+			++nr;
+		}
+		while (rc) {
+			rc = rc->next;
+			++nr;
+		}
+		ir = nr - ir  - 1;
+	}
+
+	if (nclass) {
+		const struct player_class *cc = classes;
+		int nc = 0;
+
+		while (1) {
+			if (!cc) return false;
+			if (streq(cc->name, nclass)) break;
+			cc = cc->next;
+			++ic;
+			++nc;
+		}
+		while (cc) {
+			cc = cc->next;
+			++nc;
+		}
+		ic = nc - ic - 1;
+	}
+
+	cmdq_push(CMD_BIRTH_INIT);
+	cmdq_push(CMD_BIRTH_RESET);
+	cmdq_push(CMD_CHOOSE_RACE);
+	cmd_set_arg_choice(cmdq_peek(), "choice", ir);
+	cmdq_push(CMD_CHOOSE_CLASS);
+	cmd_set_arg_choice(cmdq_peek(), "choice", ic);
+	cmdq_push(CMD_ROLL_STATS);
+	cmdq_push(CMD_NAME_CHOICE);
+	cmd_set_arg_string(cmdq_peek(), "name",
+		(nplayer == NULL) ? "Simple" : nplayer);
+	cmdq_push(CMD_ACCEPT_CHARACTER);
+	cmdq_execute(CTX_BIRTH);
+
+	return true;
+}
+
+
+/**
  * Init players with some belongings
  *
  * Having an item identifies it and makes the player "aware" of its purpose.
@@ -544,6 +614,26 @@ static void player_outfit(struct player *p)
 				continue;
 
 			num = 1;
+		}
+
+		/* Exclude if configured to do so based on birth options. */
+		if (si->eopts) {
+			bool included = true;
+			int eind = 0;
+
+			while (si->eopts[eind] && included) {
+				if (si->eopts[eind] > 0) {
+					if (p->opts.opt[si->eopts[eind]]) {
+						included = false;
+					}
+				} else {
+					if (!p->opts.opt[-si->eopts[eind]]) {
+						included = false;
+					}
+				}
+				++eind;
+			}
+			if (!included) continue;
 		}
 
 		/* Prepare a new item */
@@ -698,20 +788,18 @@ static bool sell_stat(int choice, int stats_local[STAT_MAX], int points_spent_lo
 
 /**
  * This picks some reasonable starting values for stats based on the
- * current race/class combo, etc.  For now I'm disregarding concerns
- * about role-playing, etc, and using the simple outline from
- * http://angband.oook.cz/forum/showpost.php?p=17588&postcount=6:
+ * current race/class combo, etc. using the discussion from
+ * http://angband.oook.cz/forum/showthread.php?t=1691:
  *
  * 0. buy base STR 17
- * 1. if possible buy adj DEX of 18/10
+ * 1. buy base DEX of up to 17, stopping at the last breakpoint for blows
  * 2. spend up to half remaining points on each of spell-stat and con, 
  *    but only up to max base of 16 unless a pure class 
  *    [mage or priest or warrior]
  * 3. If there are any points left, spend as much as possible in order 
  *    on DEX and then the non-spell-stat.
  */
-static void generate_stats(int stats[STAT_MAX], int points_spent[STAT_MAX], 
-						   int *points_left)
+static void generate_stats(int st[STAT_MAX], int spent[STAT_MAX], int *left)
 {
 	int step = 0;
 	bool maxed[STAT_MAX] = { 0 };
@@ -720,23 +808,25 @@ static void generate_stats(int stats[STAT_MAX], int points_spent[STAT_MAX],
 		player->class->magic.books[0].realm->stat : 0;
 	bool caster = player->class->max_attacks < 5 ? true : false;
 	bool warrior = player->class->max_attacks > 5 ? true : false;
+	int blows = 10;
+	int dex_break = 10;
 
-	while (*points_left && step >= 0) {
+	while (*left && step >= 0) {
 	
 		switch (step) {
 		
 			/* Buy base STR 17 */
 			case 0: {
 			
-				if (!maxed[STAT_STR] && stats[STAT_STR] < 17) {
-					if (!buy_stat(STAT_STR, stats, points_spent,
-								  points_left, false))
+				if (!maxed[STAT_STR] && st[STAT_STR] < 17) {
+					if (!buy_stat(STAT_STR, st, spent,
+								  left, false))
 						maxed[STAT_STR] = true;
 				} else {
 					step++;
 					
 					/* If pure caster skip to step 3 */
-					if (caster){
+					if (caster) {
 						step = 3;
 					}
 				}
@@ -744,13 +834,17 @@ static void generate_stats(int stats[STAT_MAX], int points_spent[STAT_MAX],
 				break;
 			}
 
-			/* Try and buy adj DEX of 18/10 */
+			/* Buy base DEX of 17, record best breakpoint */
 			case 1: {
-				if (!maxed[STAT_DEX] && player->state.stat_top[STAT_DEX]
-					< 18+10) {
-					if (!buy_stat(STAT_DEX, stats, points_spent,
-								  points_left, false))
+				if (!maxed[STAT_DEX] && st[STAT_DEX] < 17) {
+					if (!buy_stat(STAT_DEX, st, spent,
+								  left, true)) {
 						maxed[STAT_DEX] = true;
+					}
+					if (player->state.num_blows / 10 > blows) {
+						blows = player->state.num_blows / 10;
+						dex_break = st[STAT_DEX];
+					}
 				} else {
 					step++;
 				}
@@ -758,12 +852,11 @@ static void generate_stats(int stats[STAT_MAX], int points_spent[STAT_MAX],
 				break;
 			}
 
-			/* If we can't get 18/10 dex, sell it back. */
+			/* Sell back DEX that isn't getting us an extra blow. */
 			case 2: {
-				if (player->state.stat_top[STAT_DEX] < 18+10) {
-					while (stats[STAT_DEX] > 10)
-						sell_stat(STAT_DEX, stats, points_spent,
-								  points_left, false);
+				while (st[STAT_DEX] > dex_break) {
+					sell_stat(STAT_DEX, st, spent, left,
+							  false);
 					maxed[STAT_DEX] = false;
 				}
 				step++;
@@ -773,47 +866,45 @@ static void generate_stats(int stats[STAT_MAX], int points_spent[STAT_MAX],
 			/* 
 			 * Spend up to half remaining points on each of spell-stat and 
 			 * con, but only up to max base of 16 unless a pure class 
-			 * [mage or priest or warrior]
+			 * [caster or warrior]
 			 */
 			case 3: 
 			{
-				int points_trigger = *points_left / 2;
+				int points_trigger = *left / 2;
 				
 				if (warrior) {
-					points_trigger = *points_left;
+					points_trigger = *left;
 				} else {
 					while (!maxed[spell_stat] &&
-						   (caster || stats[spell_stat] < 18) &&
-						   points_spent[spell_stat] < points_trigger) {
+						   (caster || st[spell_stat] < 18) &&
+						   spent[spell_stat] < points_trigger) {
 
-						if (!buy_stat(spell_stat, stats, points_spent,
-									  points_left, false)) {
+						if (!buy_stat(spell_stat, st, spent,
+									  left, false)) {
 							maxed[spell_stat] = true;
 						}
 
-						if (points_spent[spell_stat] > points_trigger) {
+						if (spent[spell_stat] > points_trigger) {
 						
-							sell_stat(spell_stat, stats, points_spent,
-									  points_left, false);
+							sell_stat(spell_stat, st, spent,
+									  left, false);
 							maxed[spell_stat] = true;
 						}
 					}
 				}
 
-				/* Skip CON for casters because DEX is more important early
-				 * and is handled in 4 */
 				while (!maxed[STAT_CON] &&
-					   stats[STAT_CON] < 16 &&
-					   points_spent[STAT_CON] < points_trigger) {
+					   st[STAT_CON] < 16 &&
+					   spent[STAT_CON] < points_trigger) {
 					   
-					if (!buy_stat(STAT_CON, stats, points_spent,
-								  points_left, false)) {
+					if (!buy_stat(STAT_CON, st, spent,
+								  left, false)) {
 						maxed[STAT_CON] = true;
 					}
 
-					if (points_spent[STAT_CON] > points_trigger) {
-						sell_stat(STAT_CON, stats, points_spent,
-								  points_left, false);
+					if (spent[STAT_CON] > points_trigger) {
+						sell_stat(STAT_CON, st, spent,
+								  left, false);
 						maxed[STAT_CON] = true;
 					}
 				}
@@ -842,7 +933,7 @@ static void generate_stats(int stats[STAT_MAX], int points_spent[STAT_MAX],
 				}
 
 				/* Buy until we can't buy any more. */
-				while (buy_stat(next_stat, stats, points_spent, points_left,
+				while (buy_stat(next_stat, st, spent, left,
 								false));
 				maxed[next_stat] = true;
 
@@ -857,11 +948,11 @@ static void generate_stats(int stats[STAT_MAX], int points_spent[STAT_MAX],
 		}
 	}
 	/* Tell the UI the new points situation. */
-	event_signal_birthpoints(points_spent, *points_left);
+	event_signal_birthpoints(spent, *left);
 
 	/* Recalculate everything that's changed because
 	   the stat has changed, and inform the UI. */
-	recalculate_stats(stats, *points_left);
+	recalculate_stats(st, *left);
 }
 
 /**
@@ -871,6 +962,8 @@ static void generate_stats(int stats[STAT_MAX], int points_spent[STAT_MAX],
 void player_generate(struct player *p, const struct player_race *r,
 					 const struct player_class *c, bool old_history)
 {
+	int i;
+
 	if (!c)
 		c = p->class;
 	if (!r)
@@ -888,11 +981,20 @@ void player_generate(struct player *p, const struct player_race *r,
 	/* Hitdice */
 	p->hitdie = p->race->r_mhp + p->class->c_mhp;
 
-	/* Initial hitpoints */
-	p->mhp = p->hitdie;
-
 	/* Pre-calculate level 1 hitdice */
 	p->player_hp[0] = p->hitdie;
+
+	/*
+	 * Fill in overestimates of hitpoints for additional levels.  Do not
+	 * do the actual rolls so the player can not reset the birth screen
+	 * to get a desirable set of initial rolls.
+	 */
+	for (i = 1; i < p->lev; i++) {
+		p->player_hp[i] = p->player_hp[i - 1] + p->hitdie;
+	}
+
+	/* Initial hitpoints */
+	p->mhp = p->player_hp[p->lev - 1];
 
 	/* Roll for age/height/weight */
 	get_ahw(p);

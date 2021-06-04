@@ -51,7 +51,6 @@
  */
 
 struct chest_trap *chest_traps;
-struct chest *chests;
 
 /**
  * ------------------------------------------------------------------------
@@ -295,7 +294,7 @@ struct file_parser chest_trap_parser = {
 /**
  * The name of a chest trap
  */
-char *chest_trap_name(const struct object *obj)
+const char *chest_trap_name(const struct object *obj)
 {
 	s16b trap_value = obj->pval;
 

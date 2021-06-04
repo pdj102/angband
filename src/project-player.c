@@ -51,7 +51,7 @@ int adjust_dam(struct player *p, int type, int dam, aspect dam_aspect,
 	if (p && p->race) {
 		/* Ice is a special case */
 		int res_type = (type == PROJ_ICE) ? PROJ_COLD: type;
-		resist = p->state.el_info[res_type].res_level;
+		resist = res_type < ELEM_MAX ? p->state.el_info[res_type].res_level : 0;
 
 		/* Notice element stuff */
 		if (actual) {
@@ -131,7 +131,7 @@ typedef struct project_player_handler_context_s {
 	const struct source origin;
 	const int r;
 	const struct loc grid;
-	const int dam;
+	int dam; /* May need adjustment */
 	const int type;
 	const int power;
 
@@ -416,7 +416,7 @@ static int project_player_handler_CHAOS(project_player_handler_context_t *contex
 
 	/* Life draining */
 	if (!player_of_has(player, OF_HOLD_LIFE)) {
-		int drain = 5000 + (player->exp / 100) * z_info->life_drain_percent;
+		int drain = ((player->exp * 3)/ (100 * 2)) * z_info->life_drain_percent;
 		msg("You feel your life force draining away!");
 		player_exp_lose(player, drain, false);
 	} else {
@@ -787,7 +787,7 @@ bool project_p(struct source origin, int r, struct loc grid, int dam, int typ,
 	int res_level = typ < ELEM_MAX ? player->state.el_info[typ].res_level : 0;
 
 	/* Decoy has been hit */
-	if (square_isdecoyed(cave, grid) && dam) {
+	if (square_isdecoyed(cave, grid) && context.dam) {
 		square_destroy_decoy(cave, grid);
 	}
 
@@ -856,18 +856,18 @@ bool project_p(struct source origin, int r, struct loc grid, int dam, int typ,
 	}
 
 	/* Adjust damage for resistance, immunity or vulnerability, and apply it */
-	dam = adjust_dam(player,
-					 typ,
-					 dam,
-					 RANDOMISE,
-					 res_level,
-					 true);
-	if (dam) {
+	context.dam = adjust_dam(player,
+							 typ,
+							 context.dam,
+							 RANDOMISE,
+							 res_level,
+							 true);
+	if (context.dam) {
 		/* Self-inflicted damage is scaled down */
 		if (self) {
-			dam /= 10;
+			context.dam /= 10;
 		}
-		take_hit(player, dam, killer);
+		take_hit(player, context.dam, killer);
 	}
 
 	/* Handle side effects, possibly including extra damage */
@@ -877,7 +877,7 @@ bool project_p(struct source origin, int r, struct loc grid, int dam, int typ,
 	}
 
 	/* Disturb */
-	disturb(player, 1);
+	disturb(player);
 
 	/* Return "Anything seen?" */
 	return context.obvious;

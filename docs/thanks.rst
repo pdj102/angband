@@ -2,30 +2,52 @@
 Credits
 =======
 
-Version 4.2.0
+Version 4.2.x
 =============
 
 Code contribution:
 
+* Adriankhl
 * Alex Mooney
 * Anna Sidwell (takkaria)
+* bacchist
+* backwardsEric
+* Ben Semmler (molybdenum)
 * Bardur Arantsson
+* Bill Peterson
+* Binrui Dong
 * bron
+* Cameron Ball
+* Colin Woodbury
+* Cuboideb (Diego Gonzalez)
 * Dag Arneson (sanedragon)
+* Daniel Burgener
+* David Medley
 * Derakon
+* Eastwind921
 * Elly Fong-Jones (elly)
 * fizzix (Aaron Bader)
 * fruviad
+* Joan Andrés
 * John Weismiller (emar)
 * Kusunose Toru
+* magnate (Chris Carr)
+* Michael Courtney (wobbly)
 * Mikolaj Konarski
 * Paul Johnson
 * PowerWyrm
+* pwinckles (moosferatu)
+* Rodent/Sideways/sulkasormi
 * Ryan Schmidt
+* Shanoah Alkire
+* spenserblack
 * Stefan Strogin
+* tangar
+* timschumi
 * Vic K
 * wkmanire
 * wobbly
+* Yutao Yuan (infmagic2047)
 
 Thanks are due to many people for, reporting bugs, suggesting changes and
 contributing to discussion which has influenced this version.  The following is
@@ -33,12 +55,18 @@ an (undoubtedly poor) attempt to list you all, please let me know if you think
 you ought to be included:
 
 * Adam
+* Anarchic Fox
+* animal_waves
 * AnonymousHero
 * Antoine
+* archolewa
 * Aszazin
 * Atriel
 * bio_hazard
+* Bogatyr
+* bughunter
 * bunnies
+* Capn_Carpaccio
 * Carg
 * Carnivean
 * cccfire
@@ -51,18 +79,22 @@ you ought to be included:
 * Darin
 * debo (cyberdemons pls)
 * desstorm
-* Diego Gonzalez
+* dionysian
 * Djbanete
 * dos350
 * Dragget
+* drquicksilver
 * Ed_47569
 * Egavactip
 * emulord
 * EpicMan
+* Eric
 * Estie
 * Estragon
 * Evilpotatoe
 * Flambard
+* floatRand
+* FogSpear
 * fph
 * Gauss
 * Geoff Hill (yes, that one)
@@ -75,11 +107,13 @@ you ought to be included:
 * Gwarl
 * half
 * HallucinationMushroom
+* HebrewToYou
 * Holy_Rage
 * Hounded
 * Hrrunstar
 * Huqhox
 * Ingwe Ingweron
+* JBright
 * Jeff Greene (nppangband)
 * jevansau
 * jml34
@@ -88,11 +122,14 @@ you ought to be included:
 * kaypy
 * khearn
 * Kinematics
+* lanactoor
+* lonadar
 * luneya
 * Mark
 * MattB
 * misanthropope
 * MITZE
+* MKula
 * Mondkalb
 * Monkey Face
 * Moving Pictures
@@ -105,25 +142,31 @@ you ought to be included:
 * Nomad
 * olivertheorem
 * Once
+* Oraticus
 * Pahasusi
 * Patashu
 * Pete Mack
 * Philip
 * Pondlife
+* Pussy Galore
+* quarague
 * Quirk
 * Raerick
 * Raxmei
+* renato
 * Rydel
+* Saru
 * Scatha
 * schatz
+* scrarth
+* Selkie
 * shirish
-* Sideways
+* Sinquen
 * Sky
 * spara
 * Sparrow the Dunadan
 * Sphara
 * swaggert
-* tangar
 * the Invisible Stalker
 * Therem Harth
 * Thraalbee
@@ -132,11 +175,14 @@ you ought to be included:
 * TJA
 * TJS
 * topazg
+* Torr
 * Vivit
 * Voovus
 * Vorczar
 * Werbaer
+* whartung
 * Whelk
+* WindLord
 * Wiwaxia
 * Youssarian
 * Zikke

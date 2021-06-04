@@ -63,7 +63,7 @@
  * ------------------------------------------------------------------------ */
 static size_t rune_max;
 static struct rune *rune_list;
-static char *c_rune[] = {
+static const char *c_rune[] = {
 	"enchantment to armor",
 	"enchantment to hit",
 	"enchantment to damage"
@@ -316,7 +316,7 @@ bool player_knows_rune(struct player *p, size_t i)
 /**
  * The name of a rune
  */
-char *rune_name(size_t i)
+const char *rune_name(size_t i)
 {
 	struct rune *r = &rune_list[i];
 
@@ -337,7 +337,7 @@ char *rune_name(size_t i)
 /**
  * The description of a rune
  */
-char *rune_desc(size_t i)
+const char *rune_desc(size_t i)
 {
 	struct rune *r = &rune_list[i];
 
@@ -459,8 +459,15 @@ bool player_knows_curse(struct player *p, int index)
  *
  * \param p is the player
  * \param ego is the ego item type
+ * \param obj may be NULL to test whether the player knows the ego in general;
+ *     if obj is not NULL, the test is for whether the ego is know for that
+ *     specific object (allows for the ego to be known for the object in the
+ *     case where an ego has range of at least two values, including zero, for
+ *     a modifier, the player doesn't know that modifier,  and the object has
+ *     zero for that modifier)
  */
-bool player_knows_ego(struct player *p, struct ego_item *ego)
+bool player_knows_ego(struct player *p, struct ego_item *ego,
+	const struct object *obj)
 {
 	int i;
 
@@ -470,10 +477,25 @@ bool player_knows_ego(struct player *p, struct ego_item *ego)
 	if (!of_is_subset(p->obj_k->flags, ego->flags)) return false;
 
 	/* All modifiers known */
-	for (i = 0; i < OBJ_MOD_MAX; i++)
-		if (randcalc(ego->modifiers[i], MAX_RAND_DEPTH, MAXIMISE) &&
-			!p->obj_k->modifiers[i])
-			return false;
+	for (i = 0; i < OBJ_MOD_MAX; i++) {
+		int modmax =
+			randcalc(ego->modifiers[i], MAX_RAND_DEPTH, MAXIMISE);
+		int modmin =
+			randcalc(ego->modifiers[i], MAX_RAND_DEPTH, MINIMISE);
+
+		if ((modmax > 0 || modmin < 0) && !p->obj_k->modifiers[i]) {
+			/*
+			 * If testing a specific object, can possibly know if
+			 * the range includes zero (i.e. product of bounds is
+			 * not positive) and the object has zero for that
+			 * modifier.
+			 */
+			if (!obj || modmax * modmin > 0 ||
+					obj->modifiers[i] != 0) {
+				return false;
+			}
+		}
+	}
 
 	/* All elements known */
 	for (i = 0; i < ELEM_MAX; i++)
@@ -736,18 +758,20 @@ bool object_fully_known(const struct object *obj)
 
 
 /**
- * Checks whether the player knows whether an object has a given flag
+ * Checks whether a player knows whether an object has a given flag
  *
+ * \param p is the player
  * \param obj is the object
  * \param flag is the flag
  */
-bool object_flag_is_known(const struct object *obj, int flag)
+bool object_flag_is_known(const struct player *p, const struct object *obj,
+	int flag)
 {
 	/* Object fully known means OK */
 	if (object_fully_known(obj)) return true;
 
 	/* Player knows the flag means OK */
-	if (of_has(player->obj_k->flags, flag)) return true;
+	if (of_has(p->obj_k->flags, flag)) return true;
 
 	/* Object has had a chance to display the flag means OK */
 	if (of_has(obj->known->flags, flag)) return true;
@@ -756,12 +780,14 @@ bool object_flag_is_known(const struct object *obj, int flag)
 }
 
 /**
- * Checks whether the player knows the given element properties of an object
+ * Checks whether a player knows the given element properties of an object
  *
+ * \param p is the player
  * \param obj is the object
  * \param element is the element
  */
-bool object_element_is_known(const struct object *obj, int element)
+bool object_element_is_known(const struct player *p, const struct object *obj,
+	int element)
 {
 	if (element < 0 || element >= ELEM_MAX) return false;
 
@@ -769,7 +795,7 @@ bool object_element_is_known(const struct object *obj, int element)
 	if (object_fully_known(obj)) return true;
 
 	/* Player knows the element means OK */
-	if (player->obj_k->el_info[element].res_level) return true;
+	if (p->obj_k->el_info[element].res_level) return true;
 
 	/* Object has been exposed to the element means OK */
 	if (obj->known->el_info[element].res_level) return true;
@@ -1091,7 +1117,7 @@ void player_know_object(struct player *p, struct object *obj)
 	}
 
 	/* Set ego type, jewellery type if known */
-	if (player_knows_ego(p, obj->ego)) {
+	if (player_knows_ego(p, obj->ego, obj)) {
 		seen = obj->ego->everseen;
 		obj->known->ego = obj->ego;
 	}
@@ -1099,6 +1125,13 @@ void player_know_object(struct player *p, struct object *obj)
 	if (object_non_curse_runes_known(obj) && tval_is_jewelry(obj)) {
 		seen = obj->kind->everseen;
 		object_flavor_aware(obj);
+	}
+
+	/* Ensure effect is known as if object_set_base_known() had been called. */
+	if ((obj->kind->aware && obj->kind->flavor) ||
+		(!tval_is_wearable(obj) && !obj->kind->flavor) ||
+		(tval_is_wearable(obj) && obj->kind->effect && obj->kind->aware)) {
+		obj->known->effect = obj->effect;
 	}
 
 	/* Report on new stuff */
@@ -1227,11 +1260,11 @@ static void player_learn_rune(struct player *p, size_t i, bool message)
 
 			/* If the brand was unknown, add it to known brands */
 			if (!player_knows_brand(p, r->index)) {
-				int i;
-				for (i = 1; i < z_info->brand_max; i++) {
+				int j;
+				for (j = 1; j < z_info->brand_max; j++) {
 					/* Check base and race flag */
-					if (streq(brands[r->index].name, brands[i].name)) {
-						p->obj_k->brands[i] = true;
+					if (streq(brands[r->index].name, brands[j].name)) {
+						p->obj_k->brands[j] = true;
 						learned = true;
 					}
 				}
@@ -1244,11 +1277,11 @@ static void player_learn_rune(struct player *p, size_t i, bool message)
 
 			/* If the slay was unknown, add it to known slays */
 			if (!player_knows_slay(p, r->index)) {
-				int i;
-				for (i = 1; i < z_info->slay_max; i++) {
+				int j;
+				for (j = 1; j < z_info->slay_max; j++) {
 					/* Check base and race flag */
-					if (same_monsters_slain(r->index, i)) {
-						p->obj_k->slays[i] = true;
+					if (same_monsters_slain(r->index, j)) {
+						p->obj_k->slays[j] = true;
 						learned = true;
 					}
 				}
@@ -1258,12 +1291,12 @@ static void player_learn_rune(struct player *p, size_t i, bool message)
 
 		/* Curse runes */
 		case RUNE_VAR_CURSE: {
-			int i = r->index;
-			assert(i < z_info->curse_max);
+			int j = r->index;
+			assert(j < z_info->curse_max);
 
 			/* If the curse was unknown, add it to known curses */
-			if (!player_knows_curse(p, i)) {
-				p->obj_k->curses[i].power = 1;
+			if (!player_knows_curse(p, j)) {
+				p->obj_k->curses[j].power = 1;
 				learned = true;
 			}
 			break;
@@ -1360,7 +1393,7 @@ void player_learn_all_runes(struct player *p)
  * \param obj is the object 
  * \param mod is the modifier being noticed
  */
-void mod_message(struct object *obj, int mod)
+static void mod_message(struct object *obj, int mod)
 {
 	/* Special messages for individual properties */
 	switch (mod) {
@@ -1414,9 +1447,9 @@ void mod_message(struct object *obj, int mod)
 			break;
 		case OBJ_MOD_SHOTS:
 			if (obj->modifiers[OBJ_MOD_SHOTS] > 0)
-				msg("Your bow tingles in your hands.");
+				msg("Your missile weapon tingles in your hands.");
 			else if (obj->modifiers[OBJ_MOD_SHOTS] < 0)
-				msg("Your bow aches in your hands.");
+				msg("Your missile weapon aches in your hands.");
 			break;
 		case OBJ_MOD_INFRA:
 			msg("Your eyes tingle.");
@@ -1429,7 +1462,7 @@ void mod_message(struct object *obj, int mod)
 	}
 }
 
-void object_curses_find_to_a(struct player *p, struct object *obj)
+static void object_curses_find_to_a(struct player *p, struct object *obj)
 {
 	int index = rune_index(RUNE_VAR_COMBAT, COMBAT_RUNE_TO_A);
 	if (obj->curses) {
@@ -1452,7 +1485,7 @@ void object_curses_find_to_a(struct player *p, struct object *obj)
 	}
 }
 
-void object_curses_find_to_h(struct player *p, struct object *obj)
+static void object_curses_find_to_h(struct player *p, struct object *obj)
 {
 	int index = rune_index(RUNE_VAR_COMBAT, COMBAT_RUNE_TO_H);
 	if (obj->curses) {
@@ -1475,7 +1508,7 @@ void object_curses_find_to_h(struct player *p, struct object *obj)
 	}
 }
 
-void object_curses_find_to_d(struct player *p, struct object *obj)
+static void object_curses_find_to_d(struct player *p, struct object *obj)
 {
 	int index = rune_index(RUNE_VAR_COMBAT, COMBAT_RUNE_TO_D);
 	if (obj->curses) {
@@ -1506,7 +1539,7 @@ void object_curses_find_to_d(struct player *p, struct object *obj)
  * \param test_flags is the set of flags to check for
  * \return whether a flag was found
  */
-bool object_curses_find_flags(struct player *p, struct object *obj,
+static bool object_curses_find_flags(struct player *p, struct object *obj,
 							  bitflag *test_flags)
 {
 	char o_name[80];
@@ -1555,7 +1588,7 @@ bool object_curses_find_flags(struct player *p, struct object *obj,
  * \param p is the player
  * \param obj is the object
  */
-void object_curses_find_modifiers(struct player *p, struct object *obj)
+static void object_curses_find_modifiers(struct player *p, struct object *obj)
 {
 	int i;
 
@@ -1595,7 +1628,7 @@ void object_curses_find_modifiers(struct player *p, struct object *obj)
  * \param elem the element
  * \return whether the element appeared in a curse
  */
-bool object_curses_find_element(struct player *p, struct object *obj, int elem)
+static bool object_curses_find_element(struct player *p, struct object *obj, int elem)
 {
 	char o_name[80];
 	bool new = false;
@@ -1638,14 +1671,15 @@ bool object_curses_find_element(struct player *p, struct object *obj, int elem)
  * \param obj is the object
  * \return the index into the rune list, or -1 for no unknown runes
  */
-int object_find_unknown_rune(struct player *p, struct object *obj)
+static int object_find_unknown_rune(struct player *p, struct object *obj)
 {
 	size_t i, num = 0;
-	int *poss_runes = mem_zalloc(rune_max * sizeof(int));
+	int *poss_runes;
 	int chosen = -1;
 
 	if (object_runes_known(obj)) return -1;
 
+	poss_runes = mem_zalloc(rune_max * sizeof(int));
 	for (i = 0; i < rune_max; i++)
 		if (object_has_rune(obj, i) && !player_knows_rune(p, i))
 			poss_runes[num++] = i;
@@ -2238,5 +2272,9 @@ void object_flavor_tried(struct object *obj)
 {
 	assert(obj);
 	assert(obj->kind);
+	/* Don't mark artifacts as tried */
+	if (obj->kind->kidx >= z_info->ordinary_kind_max) {
+		return;
+	}
 	obj->kind->tried = true;
 }

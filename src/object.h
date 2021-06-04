@@ -226,6 +226,7 @@ struct object_kind {
 	struct effect *effect;	/**< Effect this item produces (effects.c) */
 	int power;				/**< Power of the item's effect */
 	char *effect_msg;
+	char *vis_msg;
 	random_value time;		/**< Recharge time (rods/activation) */
 	random_value charge;	/**< Number of charges (staves/wands) */
 
@@ -445,8 +446,8 @@ struct object {
 	bitflag flags[OF_SIZE];	/**< Object flags */
 	s16b modifiers[OBJ_MOD_MAX];	/**< Object modifiers*/
 	struct element_info el_info[ELEM_MAX];	/**< Object element info */
-	bool *brands;			/**< Array of brand structures */
-	bool *slays;			/**< Array of slay structures */
+	bool *brands;			/**< Flag absence/presence of each brand */
+	bool *slays;			/**< Flag absence/presence of each slay */
 	struct curse_data *curses;	/**< Array of curse powers and timeouts */
 
 	struct effect *effect;	/**< Effect this item produces (effects.c) */

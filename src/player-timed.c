@@ -49,7 +49,7 @@ const char *list_player_flag_names[] = {
 };
 
 struct timed_effect_data timed_effects[TMD_MAX] = {
-	#define TMD(a, b, c)	{ #a, b, c },
+	#define TMD(a, b, c)	{ #a, b, c, 0, NULL, NULL, NULL, NULL, 0, 0, 0, NULL },
 	#include "list-player-timed.h"
 	#undef TMD
 };
@@ -384,7 +384,7 @@ static void player_fix_scramble(struct player *p)
 /**
  * Return true if the player timed effect matches the given string
  */
-bool player_timed_grade_eq(struct player *p, int idx, char *match)
+bool player_timed_grade_eq(struct player *p, int idx, const char *match)
 {
 	if (p->timed[idx]) {
 		struct timed_grade *grade = timed_effects[idx].grade;
@@ -397,6 +397,23 @@ bool player_timed_grade_eq(struct player *p, int idx, char *match)
 	return false;
 }
 
+static bool player_of_has_prot_conf(struct player *p)
+{
+    bitflag collect_f[OF_SIZE], f[OF_SIZE];
+    int i;
+
+    player_flags(p, collect_f);
+
+    for (i = 0; i < p->body.count; i++) {
+        struct object *obj = slot_object(p, i);
+
+        if (!obj) continue;
+        object_flags(obj, f);
+        of_union(collect_f, f);
+    }
+
+    return of_has(collect_f, OF_PROT_CONF);
+}
 
 /**
  * ------------------------------------------------------------------------
@@ -416,7 +433,7 @@ bool player_set_timed(struct player *p, int idx, int v, bool notify)
 	struct object *weapon = equipped_item_by_slot_name(p, "weapon");
 
 	/* Lower bound */
-	v = MAX(v, 0);
+	v = MAX(v, (idx == TMD_FOOD) ? 1 : 0);
 
 	/* No change */
 	if (p->timed[idx] == v) {
@@ -445,7 +462,7 @@ bool player_set_timed(struct player *p, int idx, int v, bool notify)
 		notify = false;
 	} else if (idx == TMD_OPP_COLD && player_is_immune(p, ELEM_COLD)) {
 		notify = false;
-	} else if (idx == TMD_OPP_CONF && player_of_has(p, OF_PROT_CONF)) {
+	} else if (idx == TMD_OPP_CONF && player_of_has_prot_conf(p)) {
 		notify = false;
 	}
 
@@ -489,7 +506,7 @@ bool player_set_timed(struct player *p, int idx, int v, bool notify)
 
 	if (notify) {
 		/* Disturb */
-		disturb(p, 0);
+		disturb(p);
 
 		/* Update the visuals, as appropriate. */
 		p->upkeep->update |= effect->flag_update;

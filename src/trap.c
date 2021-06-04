@@ -139,7 +139,7 @@ static bool square_verify_trap(struct chunk *c, struct loc grid, int vis)
     /* No traps in this location. */
     if (!trap_exists) {
 		/* No traps */
-		sqinfo_off(square(c, grid).info, SQUARE_TRAP);
+		sqinfo_off(square(c, grid)->info, SQUARE_TRAP);
 
 		/* Take note */
 		square_note_spot(c, grid);
@@ -170,7 +170,7 @@ void square_free_trap(struct chunk *c, struct loc grid)
  */
 bool square_remove_all_traps(struct chunk *c, struct loc grid)
 {
-	struct trap *trap = square(c, grid).trap;
+	struct trap *trap = square(c, grid)->trap;
 	bool were_there_traps = trap == NULL ? false : true;
 
 	assert(square_in_bounds(c, grid));
@@ -203,7 +203,7 @@ bool square_remove_trap(struct chunk *c, struct loc grid, int t_idx_remove)
 
 	/* Look at the traps in this grid */
 	struct trap *prev_trap = NULL;
-	struct trap *trap = square(c, grid).trap;
+	struct trap *trap = square(c, grid)->trap;
 
 	assert(square_in_bounds(c, grid));
 	while (trap) {
@@ -352,7 +352,7 @@ void place_trap(struct chunk *c, struct loc grid, int t_idx, int trap_level)
 		/* Require the correct terrain */
 		if (!square_player_trap_allowed(c, grid)) return;
 
-		t_idx = pick_trap(c, square(c, grid).feat, trap_level);
+		t_idx = pick_trap(c, square(c, grid)->feat, trap_level);
     }
 
     /* Failure */
@@ -371,7 +371,7 @@ void place_trap(struct chunk *c, struct loc grid, int t_idx, int trap_level)
 	trf_copy(new_trap->flags, trap_info[t_idx].flags);
 
 	/* Toggle on the trap marker */
-	sqinfo_on(square(c, grid).info, SQUARE_TRAP);
+	sqinfo_on(square(c, grid)->info, SQUARE_TRAP);
 
 	/* Redraw the grid */
 	square_note_spot(c, grid);
@@ -443,7 +443,7 @@ bool square_reveal_trap(struct chunk *c, struct loc grid, bool always,
  */
 void square_memorize_traps(struct chunk *c, struct loc grid)
 {
-	struct trap *trap = square(c, grid).trap;
+	struct trap *trap = square(c, grid)->trap;
 	struct trap *current = NULL;
 	if (c != cave) return;
 
@@ -506,7 +506,7 @@ extern void hit_trap(struct loc grid, int delayed)
 			continue;
 
 		/* Disturb the player */
-		disturb(player, 0);
+		disturb(player);
 
 		/* Trap immune player learns the rune */
 		if (player_of_has(player, OF_TRAP_IMMUNE)) {
@@ -582,11 +582,17 @@ extern void hit_trap(struct loc grid, int delayed)
 
 		/* Trap becomes visible (always XXX) */
 		trf_on(trap->flags, TRF_VISIBLE);
-		square_memorize(cave, grid);
 	}
 
     /* Verify traps (remove marker if appropriate) */
-    (void)square_verify_trap(cave, grid, 0);
+    if (square_verify_trap(cave, grid, 0)) {
+	/* At least one trap left.  Memorize the visible ones and the grid. */
+	square_memorize_traps(cave, grid);
+	square_memorize(cave, grid);
+    }
+    if (square_isseen(cave, grid)) {
+	square_light_spot(cave, grid);
+    }
 }
 
 /**
@@ -602,7 +608,7 @@ bool square_set_trap_timeout(struct chunk *c, struct loc grid, bool domsg,
 	assert(square_in_bounds(c, grid));
 
 	/* Look at the traps in this grid */
-	current_trap = square(c, grid).trap;
+	current_trap = square(c, grid)->trap;
 	while (current_trap) {
 		/* Get the next trap (may be NULL) */
 		struct trap *next_trap = current_trap->next;
@@ -641,7 +647,7 @@ bool square_set_trap_timeout(struct chunk *c, struct loc grid, bool domsg,
  */
 int square_trap_timeout(struct chunk *c, struct loc grid, int t_idx)
 {
-	struct trap *current_trap = square(c, grid).trap;
+	struct trap *current_trap = square(c, grid)->trap;
 	while (current_trap) {
 		/* Get the next trap (may be NULL) */
 		struct trap *next_trap = current_trap->next;

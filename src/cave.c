@@ -491,30 +491,43 @@ void delist_object(struct chunk *c, struct object *obj)
 }
 
 /**
- * Check that a pair of object lists are consistent and relate to locations of
+ * Check consistency of an object list or a pair of object lists
+ *
+ * If one list, check the listed objects relate to locations of
  * objects correctly
  */
 void object_lists_check_integrity(struct chunk *c, struct chunk *c_k)
 {
 	int i;
-	assert(c->obj_max == c_k->obj_max);
-	for (i = 0; i < c->obj_max; i++) {
-		struct object *obj = c->objects[i];
-		struct object *known_obj = c_k->objects[i];
-		if (obj) {
-			assert(obj->oidx == i);
-			if (!loc_is_zero(obj->grid))
-				assert(pile_contains(square_object(c, obj->grid), obj));
-		}
-		if (known_obj) {
-			assert (obj);
-			if (player->upkeep->playing) {
-				assert(known_obj == obj->known);
+	if (c_k) {
+		assert(c->obj_max == c_k->obj_max);
+		for (i = 0; i < c->obj_max; i++) {
+			struct object *obj = c->objects[i];
+			struct object *known_obj = c_k->objects[i];
+			if (obj) {
+				assert(obj->oidx == i);
+				if (!loc_is_zero(obj->grid))
+					assert(pile_contains(square_object(c, obj->grid), obj));
 			}
-			if (!loc_is_zero(known_obj->grid))
-				assert (pile_contains(square_object(c_k, known_obj->grid),
-									  known_obj));
-			assert (known_obj->oidx == i);
+			if (known_obj) {
+				assert (obj);
+				if (player->upkeep->playing) {
+					assert(known_obj == obj->known);
+				}
+				if (!loc_is_zero(known_obj->grid))
+					assert (pile_contains(square_object(c_k, known_obj->grid),
+										  known_obj));
+				assert (known_obj->oidx == i);
+			}
+		}
+	} else {
+		for (i = 0; i < c->obj_max; i++) {
+			struct object *obj = c->objects[i];
+			if (obj) {
+				assert(obj->oidx == i);
+				if (!loc_is_zero(obj->grid))
+					assert(pile_contains(square_object(c, obj->grid), obj));
+			}
 		}
 	}
 }
@@ -580,7 +593,11 @@ int cave_monster_count(struct chunk *c) {
 }
 
 /**
- * Return the number of doors/traps around (or under) the character.
+ * Return the number of matching grids around (or under) the character.
+ * \param grid If not NULL, *grid is set to the location of the last match.
+ * \param test Is the predicate to use when testing for a match.
+ * \param under If true, the character's grid is tested as well.
+ * Only tests grids that are known and fully in bounds.
  */
 int count_feats(struct loc *grid,
 				bool (*test)(struct chunk *c, struct loc grid), bool under)
@@ -609,9 +626,47 @@ int count_feats(struct loc *grid,
 		/* Count it */
 		++count;
 
-		/* Remember the location of the last door found */
+		/* Remember the location of the last match */
 		if (grid) {
 			*grid = grid1;
+		}
+	}
+
+	/* All done */
+	return count;
+}
+
+/**
+ * Return the number of matching grids around a location.
+ * \param match If not NULL, *match is set to the location of the last match.
+ * \param c Is the chunk to use.
+ * \param grid Is the location whose neighbors will be tested.
+ * \param test Is the predicate to use when testing for a match.
+ * \param under If true, grid is tested as well.
+ */
+int count_neighbors(struct loc *match, struct chunk *c, struct loc grid,
+	bool (*test)(struct chunk *c, struct loc grid), bool under)
+{
+	int dlim = (under) ? 9 : 8;
+	int count = 0; /* Count how many matches */
+	int d;
+	struct loc grid1;
+
+	/* Check the grid's neighbors and, if under is true, grid */
+	for (d = 0; d < dlim; d++) {
+		/* Extract adjacent (legal) location */
+		grid1 = loc_sum(grid, ddgrid_ddd[d]);
+		if (!square_in_bounds(c, grid1)) continue;
+
+		/* Reject those that don't match */
+		if (!((*test)(c, grid1))) continue;
+
+		/* Count it */
+		++count;
+
+		/* Remember the location of the last match */
+		if (match) {
+			*match = grid1;
 		}
 	}
 

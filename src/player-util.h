@@ -20,6 +20,7 @@
 #ifndef PLAYER_UTIL_H
 #define PLAYER_UTIL_H
 
+#include "cmd-core.h"
 #include "player.h"
 
 /* Player regeneration constants */
@@ -65,6 +66,7 @@ bool player_get_recall_depth(struct player *p);
 void dungeon_change_level(struct player *p, int dlev);
 void take_hit(struct player *p, int dam, const char *kb_str);
 void death_knowledge(struct player *p);
+int energy_per_move(struct player *p);
 s16b modify_stat_value(int value, int amount);
 void player_regen_hp(struct player *p);
 void player_regen_mana(struct player *p);
@@ -80,6 +82,7 @@ void player_take_terrain_damage(struct player *p, struct loc grid);
 struct player_shape *lookup_player_shape(const char *name);
 int shape_name_to_idx(const char *name);
 struct player_shape *player_shape_by_idx(int index);
+bool player_get_resume_normal_shape(struct player *p, struct command *cmd);
 void player_resume_normal_shape(struct player *p);
 bool player_is_shapechanged(struct player *p);
 bool player_is_trapsafe(struct player *p);
@@ -93,6 +96,7 @@ bool player_can_study_prereq(void);
 bool player_can_read_prereq(void);
 bool player_can_fire_prereq(void);
 bool player_can_refuel_prereq(void);
+bool player_can_debug_prereq(void);
 bool player_book_has_unlearned_spells(struct player *p);
 bool player_confuse_dir(struct player *p, int *dir, bool too);
 bool player_resting_is_special(s16b count);
@@ -109,7 +113,7 @@ bool player_of_has(struct player *p, int flag);
 bool player_resists(struct player *p, int element);
 bool player_is_immune(struct player *p, int element);
 void player_place(struct chunk *c, struct player *p, struct loc grid);
-void disturb(struct player *p, int stop_search);
+void disturb(struct player *p);
 void search(struct player *p);
 
 #endif /* !PLAYER_UTIL_H */

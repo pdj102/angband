@@ -27,9 +27,9 @@
 #         flag or a nonzero value for a modifier or resistance).  When not set,
 #         the value (0 for off flag, 1 for on flag, value for modifier,
 #         resistance level for a resistance) is sent.  bindui is currently only
-#         used for parts of the second character screen.  This field can appear
-#         multiple times to bind a property to more than one user interface
-#         element.
+#         used for parts of the second character screen and the equippable
+#         comparison.  This field can appear multiple times to bind a property
+#         to more than one user interface element.
 # desc: an extra piece of descriptive text used in object information
 
 name:strength
@@ -120,7 +120,7 @@ power:5
 mult:6
 bindui:damage_reduction_ui_compact_0:0
 
-name:attack speed
+name:extra blows
 type:mod
 code:BLOWS
 power:0
@@ -186,7 +186,7 @@ type-mult:gloves:0
 type-mult:boots:0
 bindui:shooting_power_ui_compact_0:0
 
-name:movement speed
+name:extra moves
 type:mod
 code:MOVES
 power:0

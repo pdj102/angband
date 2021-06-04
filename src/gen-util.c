@@ -115,7 +115,7 @@ byte get_angle_to_grid[41][41] =
  */
 int grid_to_i(struct loc grid, int w)
 {
-    return grid.y * w + grid.x;
+	return grid.y * w + grid.x;
 }
 
 /**
@@ -126,8 +126,8 @@ int grid_to_i(struct loc grid, int w)
  */
 void i_to_grid(int i, int w, struct loc *grid)
 {
-    grid->y = i / w;
-    grid->x = i % w;
+	grid->y = i / w;
+	grid->x = i % w;
 }
 
 /**
@@ -137,13 +137,13 @@ void i_to_grid(int i, int w, struct loc *grid)
  */
 void shuffle(int *arr, int n)
 {
-    int i, j, k;
-    for (i = 0; i < n; i++) {
+	int i, j, k;
+	for (i = 0; i < n; i++) {
 		j = randint0(n - i) + i;
 		k = arr[j];
 		arr[j] = arr[i];
 		arr[i] = k;
-    }
+	}
 }
 
 
@@ -158,19 +158,19 @@ void shuffle(int *arr, int n)
  * \return success
  */
 static bool cave_find_in_range(struct chunk *c, struct loc *grid,
-							   struct loc top_left, struct loc bottom_right,
-							   square_predicate pred)
+	struct loc top_left, struct loc bottom_right,
+	square_predicate pred)
 {
-    struct loc diff = loc_diff(bottom_right, top_left);
-    int i, n = diff.y * diff.x;
-    bool found = false;
+	struct loc diff = loc_diff(bottom_right, top_left);
+	int i, n = diff.y * diff.x;
+	bool found = false;
 
-    /* Allocate the squares, and randomize their order */
-    int *squares = mem_alloc(n * sizeof(int));
-    for (i = 0; i < n; i++) squares[i] = i;
+	/* Allocate the squares, and randomize their order */
+	int *squares = mem_alloc(n * sizeof(int));
+	for (i = 0; i < n; i++) squares[i] = i;
 
-    /* Test each square in (random) order for openness */
-    for (i = 0; i < n && !found; i++) {
+	/* Test each square in (random) order for openness */
+	for (i = 0; i < n && !found; i++) {
 		int j = randint0(n - i) + i;
 		int k = squares[j];
 		squares[j] = squares[i];
@@ -179,12 +179,12 @@ static bool cave_find_in_range(struct chunk *c, struct loc *grid,
 		grid->y = (k / diff.x) + top_left.y;
 		grid->x = (k % diff.x) + top_left.x;
 		if (pred(c, *grid)) found = true;
-    }
+	}
 
 	mem_free(squares);
 
-    /* Return whether we found an empty square or not. */
-    return found;
+	/* Return whether we found an empty square or not. */
+	return found;
 }
 
 
@@ -199,7 +199,7 @@ bool cave_find(struct chunk *c, struct loc *grid, square_predicate pred)
 {
 	struct loc top_left = loc(0, 0);
 	struct loc bottom_right = loc(c->width - 1, c->height - 1);
-    return cave_find_in_range(c, grid, top_left, bottom_right, pred);
+	return cave_find_in_range(c, grid, top_left, bottom_right, pred);
 }
 
 
@@ -211,7 +211,7 @@ bool cave_find(struct chunk *c, struct loc *grid, square_predicate pred)
  */
 bool find_empty(struct chunk *c, struct loc *grid)
 {
-    return cave_find(c, grid, square_isempty);
+	return cave_find(c, grid, square_isempty);
 }
 
 
@@ -224,9 +224,10 @@ bool find_empty(struct chunk *c, struct loc *grid)
  * \return success
  */
 bool find_empty_range(struct chunk *c, struct loc *grid, struct loc top_left,
-					  struct loc bottom_right)
+	struct loc bottom_right)
 {
-    return cave_find_in_range(c, grid, top_left, bottom_right, square_isempty);
+	return cave_find_in_range(c, grid, top_left, bottom_right,
+		square_isempty);
 }
 
 
@@ -240,12 +241,12 @@ bool find_empty_range(struct chunk *c, struct loc *grid, struct loc top_left,
  * \return success
  */
 bool find_nearby_grid(struct chunk *c, struct loc *grid, struct loc centre,
-					  int yd, int xd)
+	int yd, int xd)
 {
-    struct loc top_left = loc(centre.x - xd, centre.y - yd);
+	struct loc top_left = loc(centre.x - xd, centre.y - yd);
 	struct loc bottom_right = loc(centre.x + xd + 1, centre.y + yd + 1);
-    return cave_find_in_range(c, grid, top_left, bottom_right,
-							  square_in_bounds_fully);
+	return cave_find_in_range(c, grid, top_left, bottom_right,
+		square_in_bounds_fully);
 }
 
 
@@ -257,17 +258,17 @@ bool find_nearby_grid(struct chunk *c, struct loc *grid, struct loc centre,
  */
 void correct_dir(struct loc *offset, struct loc grid1, struct loc grid2)
 {
-    /* Extract horizontal and vertical directions */
-    offset->x = CMP(grid2.x, grid1.x);
+	/* Extract horizontal and vertical directions */
+	offset->x = CMP(grid2.x, grid1.x);
 	offset->y = CMP(grid2.y, grid1.y);
 
-    /* If we only have one direction to go, then we're done */
-    if (!offset->x || !offset->y) return;
+	/* If we only have one direction to go, then we're done */
+	if (!offset->x || !offset->y) return;
 
-    /* If we need to go diagonally, then choose a random direction */
-    if (randint0(100) < 50)
+	/* If we need to go diagonally, then choose a random direction */
+	if (randint0(100) < 50)
 		offset->y = 0;
-    else
+	else
 		offset->x = 0;
 }
 
@@ -278,9 +279,9 @@ void correct_dir(struct loc *offset, struct loc grid1, struct loc grid2)
  */
 void rand_dir(struct loc *offset)
 {
-    /* Pick a random direction and extract the dy/dx components */
-    int i = randint0(4);
-    *offset = ddgrid_ddd[i];
+	/* Pick a random direction and extract the dy/dx components */
+	int i = randint0(4);
+	*offset = ddgrid_ddd[i];
 }
 
 
@@ -294,12 +295,13 @@ void rand_dir(struct loc *offset)
 static bool find_start(struct chunk *c, struct loc *grid)
 {
 	/* Find the best possible place */
-	if (cave_find_in_range(c, grid, loc(1, 1), loc(c->width - 2, c->height - 2),
-						   square_suits_stairs_well)) {
-			return true;
+	if (cave_find_in_range(c, grid, loc(1, 1),
+			loc(c->width - 2, c->height - 2),
+			square_suits_stairs_well)) {
+		return true;
 	} else if (cave_find_in_range(c, grid, loc(1, 1),
-								  loc(c->width - 2, c->height - 2),
-								  square_suits_stairs_ok)) {
+			loc(c->width - 2, c->height - 2),
+			square_suits_stairs_ok)) {
 		return true;
 	} else {
 		int walls = 6;
@@ -312,9 +314,9 @@ static bool find_start(struct chunk *c, struct loc *grid)
 			for (j = 0; j < 10000; j++) {
 				int total_walls = 0;
 
-				cave_find_in_range(c, grid, loc(1, 1),
-								   loc(c->width - 2, c->height - 2),
-								   square_isempty);
+				if (!cave_find_in_range(c, grid, loc(1, 1),
+						loc(c->width - 2, c->height - 2),
+						square_isempty)) continue;
 				if (square_isvault(c, *grid) || square_isno_stairs(c, *grid)) {
 					continue;
 				}
@@ -329,7 +331,7 @@ static bool find_start(struct chunk *c, struct loc *grid)
 			walls--;
 		}
 	}
-    return false;
+	return false;
 }
 
 
@@ -340,26 +342,27 @@ static bool find_start(struct chunk *c, struct loc *grid)
  */
 void new_player_spot(struct chunk *c, struct player *p)
 {
-    struct loc grid;
+	struct loc grid;
 
-    /* Try to find a good place to put the player */
+	/* Try to find a good place to put the player */
 	if (OPT(p, birth_levels_persist) &&
-		square_in_bounds_fully(c, p->grid) &&
-		square_isstairs(c, p->grid)) {
+			square_in_bounds_fully(c, p->grid) &&
+			square_isstairs(c, p->grid)) {
 		grid = p->grid;
 	} else if (!find_start(c, &grid)) {
+		dump_level_simple(NULL, "Player Placement Failure", c);
 		quit("Failed to place player!");
 	}
 
-    /* Create stairs the player came down if allowed and necessary */
-    if (!OPT(p, birth_connect_stairs))
+	/* Create stairs the player came down if allowed and necessary */
+	if (!OPT(p, birth_connect_stairs))
 		;
 	else if (p->upkeep->create_down_stair)
 		square_set_feat(c, grid, FEAT_MORE);
 	else if (p->upkeep->create_up_stair)
 		square_set_feat(c, grid, FEAT_LESS);
 
-    player_place(c, p, grid);
+	player_place(c, p, grid);
 }
 
 
@@ -370,7 +373,7 @@ void new_player_spot(struct chunk *c, struct player *p)
  */
 static void place_rubble(struct chunk *c, struct loc grid)
 {
-   square_set_feat(c, grid, one_in_(2) ? FEAT_RUBBLE : FEAT_PASS_RUBBLE);
+	square_set_feat(c, grid, one_in_(2) ? FEAT_RUBBLE : FEAT_PASS_RUBBLE);
 }
 
 
@@ -384,11 +387,11 @@ static void place_rubble(struct chunk *c, struct loc grid)
  */
 static void place_stairs(struct chunk *c, struct loc grid, int feat)
 {
-    if (!c->depth)
+	if (!c->depth)
 		square_set_feat(c, grid, FEAT_MORE);
-    else if (is_quest(c->depth) || c->depth >= z_info->max_depth - 1)
+	else if (is_quest(c->depth) || c->depth >= z_info->max_depth - 1)
 		square_set_feat(c, grid, FEAT_LESS);
-    else
+	else
 		square_set_feat(c, grid, feat);
 }
 
@@ -400,8 +403,8 @@ static void place_stairs(struct chunk *c, struct loc grid, int feat)
  */
 void place_random_stairs(struct chunk *c, struct loc grid)
 {
-   int feat = randint0(100) < 50 ? FEAT_LESS : FEAT_MORE;
-    if (square_canputitem(c, grid))
+	int feat = randint0(100) < 50 ? FEAT_LESS : FEAT_MORE;
+	if (square_canputitem(c, grid))
 		place_stairs(c, grid, feat);
 }
 
@@ -417,29 +420,29 @@ void place_random_stairs(struct chunk *c, struct loc grid)
  * \param tval specified tval, if any
  */
 void place_object(struct chunk *c, struct loc grid, int level, bool good,
-				  bool great, byte origin, int tval)
+	bool great, byte origin, int tval)
 {
 	s32b rating = 0;
-    struct object *new_obj;
+	struct object *new_obj;
 	bool dummy = true;
 
-    if (!square_in_bounds(c, grid)) return;
-    if (!square_canputitem(c, grid)) return;
+	if (!square_in_bounds(c, grid)) return;
+	if (!square_canputitem(c, grid)) return;
 
 	/* Make an appropriate object */
-    new_obj = make_object(c, level, good, great, false, &rating, tval);
+	new_obj = make_object(c, level, good, great, false, &rating, tval);
 	if (!new_obj) return;
-    new_obj->origin = origin;
-    new_obj->origin_depth = c->depth;
+	new_obj->origin = origin;
+	new_obj->origin_depth = c->depth;
 
-    /* Give it to the floor */
-    if (!floor_carry(c, grid, new_obj, &dummy)) {
+	/* Give it to the floor */
+	if (!floor_carry(c, grid, new_obj, &dummy)) {
 		if (new_obj->artifact) {
 			new_obj->artifact->created = false;
 		}
 		object_delete(&new_obj);
 		return;
-    } else {
+	} else {
 		list_object(c, new_obj);
 		if (new_obj->artifact) {
 			c->good_item = true;
@@ -449,7 +452,7 @@ void place_object(struct chunk *c, struct loc grid, int level, bool good,
 			rating = 2500000;
 		}
 		c->obj_rating += (rating / 100) * (rating / 100);
-    }
+	}
 }
 
 
@@ -462,17 +465,17 @@ void place_object(struct chunk *c, struct loc grid, int level, bool good,
  */
 void place_gold(struct chunk *c, struct loc grid, int level, byte origin)
 {
-    struct object *money = NULL;
+	struct object *money = NULL;
 	bool dummy = true;
 
-    if (!square_in_bounds(c, grid)) return;
-    if (!square_canputitem(c, grid)) return;
+	if (!square_in_bounds(c, grid)) return;
+	if (!square_canputitem(c, grid)) return;
 
-    money = make_gold(level, "any");
-    money->origin = origin;
-    money->origin_depth = level;
+	money = make_gold(level, "any");
+	money->origin = origin;
+	money->origin_depth = level;
 
-    if (!floor_carry(c, grid, money, &dummy)) {
+	if (!floor_carry(c, grid, money, &dummy)) {
 		object_delete(&money);
 	} else {
 		list_object(c, money);
@@ -487,12 +490,12 @@ void place_gold(struct chunk *c, struct loc grid, int level, byte origin)
  */
 void place_secret_door(struct chunk *c, struct loc grid)
 {
-    square_set_feat(c, grid, FEAT_SECRET);
+	square_set_feat(c, grid, FEAT_SECRET);
 }
 
 
 /**
- * Place a closed door at a given location.
+ * Place a closed (and possibly locked) door at a given location.
  * \param c current chunk
  * \param grid location
  */
@@ -509,17 +512,17 @@ void place_closed_door(struct chunk *c, struct loc grid)
  * \param c current chunk
  * \param grid location
  *
- * The door generated could be closed, open, broken, or secret.
+ * The door generated could be closed (and possibly locked), open, or broken.
  */
 void place_random_door(struct chunk *c, struct loc grid)
 {
-    int tmp = randint0(100);
+	int tmp = randint0(100);
 
-    if (tmp < 30)
+	if (tmp < 30)
 		square_set_feat(c, grid, FEAT_OPEN);
-    else if (tmp < 40)
+	else if (tmp < 40)
 		square_set_feat(c, grid, FEAT_BROKEN);
-    else
+	else
 		place_closed_door(c, grid);
 }
 
@@ -532,10 +535,10 @@ void place_random_door(struct chunk *c, struct loc grid)
  */
 void alloc_stairs(struct chunk *c, int feat, int num)
 {
-    int i;
+	int i;
 
-    /* Place "num" stairs */
-    for (i = 0; i < num; i++) {
+	/* Place "num" stairs */
+	for (i = 0; i < num; i++) {
 		struct loc grid;
 		bool done = false;
 		int walls = 3;
@@ -546,11 +549,12 @@ void alloc_stairs(struct chunk *c, int feat, int num)
 
 			/* Try several times, then decrease "walls" */
 			for (j = 0; !done && j <= 100; j++) {
-				find_empty(c, &grid);
+				if (!find_empty(c, &grid)) continue;
 
 				if (square_num_walls_adjacent(c, grid) < walls) continue;
 
 				place_stairs(c, grid, feat);
+				assert(square_isstairs(c, grid));
 				done = true;
 			}
 
@@ -573,13 +577,13 @@ void alloc_stairs(struct chunk *c, int feat, int num)
  * See alloc_object() for more information.
  */
 void alloc_objects(struct chunk *c, int set, int typ, int num, int depth,
-				   byte origin)
+	byte origin)
 {
-    int k, l = 0;
-    for (k = 0; k < num; k++) {
+	int k, l = 0;
+	for (k = 0; k < num; k++) {
 		bool ok = alloc_object(c, set, typ, depth, origin);
 		if (!ok) l++;
-    }
+	}
 }
 
 
@@ -596,35 +600,35 @@ void alloc_objects(struct chunk *c, int set, int typ, int num, int depth,
  */
 bool alloc_object(struct chunk *c, int set, int typ, int depth, byte origin)
 {
-    int tries = 0;
+	int tries = 0;
 	struct loc grid;
 
-    /* Pick a "legal" spot */
-    while (tries < 2000) {
+	/* Pick a "legal" spot */
+	while (tries < 2000) {
 		tries++;
 
-		find_empty(c, &grid);
+		if (!find_empty(c, &grid)) continue;
 
 		/* If we are ok with a corridor and we're in one, we're done */
 		if (set & SET_CORR && !square_isroom(c, grid)) break;
 
 		/* If we are ok with a room and we're in one, we're done */
 		if (set & SET_ROOM && square_isroom(c, grid)) break;
-    }
+	}
 
-    if (tries == 2000) return false;
+	if (tries == 2000) return false;
 
-    /* Place something */
-    switch (typ) {
-    case TYP_RUBBLE: place_rubble(c, grid); break;
-    case TYP_TRAP: place_trap(c, grid, -1, depth); break;
-    case TYP_GOLD: place_gold(c, grid, depth, origin); break;
-    case TYP_OBJECT: place_object(c, grid, depth, false, false, origin, 0);
+	/* Place something */
+	switch (typ) {
+	case TYP_RUBBLE: place_rubble(c, grid); break;
+	case TYP_TRAP: place_trap(c, grid, -1, depth); break;
+	case TYP_GOLD: place_gold(c, grid, depth, origin); break;
+	case TYP_OBJECT: place_object(c, grid, depth, false, false, origin, 0);
 		break;
-    case TYP_GOOD: place_object(c, grid, depth, true, false, origin, 0); break;
-    case TYP_GREAT: place_object(c, grid, depth, true, true, origin, 0); break;
-    }
-    return true;
+	case TYP_GOOD: place_object(c, grid, depth, true, false, origin, 0); break;
+	case TYP_GREAT: place_object(c, grid, depth, true, true, origin, 0); break;
+	}
+	return true;
 }
 
 /**
@@ -636,16 +640,16 @@ bool alloc_object(struct chunk *c, int set, int typ, int depth, byte origin)
  */
 void vault_objects(struct chunk *c, struct loc grid, int depth, int num)
 {
-    int i;
+	int i;
 
-    /* Attempt to place 'num' objects */
-    for (; num > 0; --num) {
+	/* Attempt to place 'num' objects */
+	for (; num > 0; --num) {
 		/* Try up to 11 spots looking for empty space */
 		for (i = 0; i < 11; ++i) {
 			struct loc near;
 
 			/* Pick a random location */
-			find_nearby_grid(c, &near, grid, 2, 3);
+			if (!find_nearby_grid(c, &near, grid, 2, 3)) assert(0);
 
 			/* Require "clean" floor space */
 			if (!square_canputitem(c, near)) continue;
@@ -659,7 +663,7 @@ void vault_objects(struct chunk *c, struct loc grid, int depth, int num)
 			/* Placement accomplished */
 			break;
 		}
-    }
+	}
 }
 
 /**
@@ -671,17 +675,17 @@ void vault_objects(struct chunk *c, struct loc grid, int depth, int num)
  */
 static void vault_trap_aux(struct chunk *c, struct loc grid, int yd, int xd)
 {
-    int tries;
+	int tries;
 
-    /* Find a nearby empty grid and place a trap */
-    for (tries = 0; tries <= 5; tries++) {
+	/* Find a nearby empty grid and place a trap */
+	for (tries = 0; tries <= 5; tries++) {
 		struct loc near;
-		find_nearby_grid(c, &near, grid, yd, xd);
+		if (!find_nearby_grid(c, &near, grid, yd, xd)) assert(0);
 		if (!square_isempty(c, near)) continue;
 
 		square_add_trap(c, near);
 		break;
-    }
+	}
 }
 
 
@@ -695,8 +699,8 @@ static void vault_trap_aux(struct chunk *c, struct loc grid, int yd, int xd)
  */
 void vault_traps(struct chunk *c, struct loc grid, int yd, int xd, int num)
 {
-    int i;
-    for (i = 0; i < num; i++)
+	int i;
+	for (i = 0; i < num; i++)
 		vault_trap_aux(c, grid, yd, xd);
 }
 
@@ -710,13 +714,13 @@ void vault_traps(struct chunk *c, struct loc grid, int yd, int xd, int num)
  */
 void vault_monsters(struct chunk *c, struct loc grid, int depth, int num)
 {
-    int k, i;
+	int k, i;
 
 	/* If the starting location is illegal, don't even start */
 	if (!square_in_bounds(c, grid)) return;
 
-    /* Try to summon "num" monsters "near" the given location */
-    for (k = 0; k < num; k++) {
+	/* Try to summon "num" monsters "near" the given location */
+	for (k = 0; k < num; k++) {
 		/* Try nine locations */
 		for (i = 0; i < 9; i++) {
 			struct loc near;
@@ -729,11 +733,210 @@ void vault_monsters(struct chunk *c, struct loc grid, int depth, int num)
 
 			/* Place the monster (allow groups) */
 			pick_and_place_monster(c, near, depth, true, true,
-								   ORIGIN_DROP_SPECIAL);
+				ORIGIN_DROP_SPECIAL);
 
 			break;
 		}
-    }
+	}
 }
 
 
+/**
+ * Dump the given level for post-mortem analysis; handle all I/O.
+ * \param basefilename Is the base name (no directory or extension) for the
+ * file to use.  If NULL, "dumpedlevel" will be used.
+ * \param title Is the label to use within the file.  If NULL, "Dumped Level"
+ * will be used.
+ * \param c Is the chunk to dump.
+ */
+void dump_level_simple(const char *basefilename, const char *title,
+	struct chunk *c)
+{
+	char path[1024];
+	ang_file *fo;
+
+	path_build(path, sizeof(path), ANGBAND_DIR_USER, (basefilename) ?
+		format("%s.html", basefilename) : "dumpedlevel.html");
+	fo = file_open(path, MODE_WRITE, FTYPE_TEXT);
+	if (fo) {
+		dump_level(fo, (title) ? title : "Dumped Level", c, NULL);
+		if (file_close(fo)) {
+			msg(format("Level dumped to %s.html",
+				(basefilename) ? basefilename : "dumpedlevel"));
+		}
+	}
+}
+
+
+/**
+ * Dump the given level to a file for post-mortem analysis.
+ * \param fo Is the file handle to use.  Must be capable of sequential writes
+ * in text format.  The level is dumped starting at the current offset in the
+ * file.
+ * \param title Is the title to use for the contents.
+ * \param c Is the chunk to dump.
+ * \param dist If not NULL, must act like a two dimensional C array with the
+ * first dimension being at least c->height elements and the second being at
+ * least c->width elements.  For a location (x,y) in the level, if dist[y][x]
+ * is negative, the contents will be rendered differently.
+ *
+ * The current output format is HTML since a typical browser will happily
+ * display the content in a scrollable area without wrapping lines.  This
+ * function is a convenience to replace a set of calls to dump_level_header(),
+ * dump_level_body(), and dump_level_footer().
+ */
+void dump_level(ang_file *fo, const char *title, struct chunk *c, int **dist)
+{
+	dump_level_header(fo, title);
+	dump_level_body(fo, title, c, dist);
+	dump_level_footer(fo);
+}
+
+
+/**
+ * Helper function to write a string while escaping any special characters.
+ * \param fo Is the file handle to use.
+ * \param s Is the string to write.
+ */
+static void dump_level_escaped_string(ang_file *fo, const char *s)
+{
+	while (*s) {
+		switch (*s) {
+		case '&':
+			file_put(fo, "&amp;");
+			break;
+
+		case '<':
+			file_put(fo, "&lt;");
+			break;
+
+		case '>':
+			file_put(fo, "&gt;");
+			break;
+
+		case '\"':
+			file_put(fo, "&quot;");
+			break;
+
+		default:
+			file_putf(fo, "%c", *s);
+			break;
+		}
+		++s;
+	}
+}
+
+
+/**
+ * Write the introductory material for the dump of one or move levels.
+ * \param fo Is the file handle to use.  Must be capable of sequential writes
+ * in text format.  Writes start at the current offset in the file.
+ * \param title Is the title to use for the contents of the file.
+ *
+ * The current format uses HTML.  This should be called once per dump (or
+ * take other measures to overwrite a previous call).
+ */
+void dump_level_header(ang_file *fo, const char *title)
+{
+	file_put(fo,
+		"<!DOCTYPE html>\n"
+		"<html lang=\"en\" xml:lang=\"en\" xmlns=\"http://www.w3.org/1999/xhtml\">\n"
+		"  <head>\n"
+		"    <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">\n"
+		"    <title>");
+	dump_level_escaped_string(fo, title);
+	file_put(fo, "</title>\n  </head>\n  <body>\n");
+}
+
+
+/**
+ * Dump the given level to a file.
+ * \param fo Is the file handle to use.  Must be capable of sequential writes
+ * in text format.  The level is dumped starting at the current offset in the
+ * file.
+ * \param title Is the title to use for the level.
+ * \param c Is the chunk to dump.
+ * \param dist If not NULL, must act like a two dimensional C array with the
+ * first dimension being at least c->height elements and the second being at
+ * least c->width elements.  For a location (x,y) in the level, if dist[y][x]
+ * is negative, the contents will be rendered differently.
+ *
+ * The current output format is HTML.  You can dump more than one level to
+ * the same file by calling dump_level_header() once for the file, followed
+ * by calling dump_level_body() for each level of interest, then calling
+ * dump_level_footer() once to finish things off before you close the file
+ * with file_close().
+ */
+void dump_level_body(ang_file *fo, const char *title, struct chunk *c,
+	int **dist)
+{
+	int y;
+
+	file_put(fo, "    <p>");
+	dump_level_escaped_string(fo, title);
+	if (dist != NULL) {
+		file_put(fo, "\n    <p>A location where the distance array was negative is marked with *.");
+	}
+	file_put(fo, "\n    <pre>\n");
+	for (y = 0; y < c->height; ++y) {
+		int x;
+
+		for (x = 0; x < c->width; ++x) {
+			struct loc grid = loc(x, y);
+			const char *s = "#";
+
+			if (square_in_bounds_fully(c, grid)) {
+				if (square_isplayer(c, grid)) {
+					s = "@";
+				} else if (square_isoccupied(c, grid)) {
+					s = (dist == NULL || dist[y][x] >= 0) ?
+						"M" : "*";
+				} else if (square_isdoor(c, grid)) {
+					s = (dist == NULL || dist[y][x] >= 0) ?
+						"+" : "*";
+				} else if (square_isrubble(c, grid)) {
+					s = (dist == NULL || dist[y][x] >= 0) ?
+						":" : "*";
+				} else if (square_isdownstairs(c, grid)) {
+					s = (dist == NULL || dist[y][x] >= 0) ?
+						"&gt;" : "*";
+				} else if (square_isupstairs(c, grid)) {
+					s = (dist == NULL || dist[y][x] >= 0) ?
+						"&lt;" : "*";
+				} else if (square_istrap(c, grid) ||
+					square_isplayertrap(c, grid)) {
+					s = (dist == NULL || dist[y][x] >= 0) ?
+						"^" : "*";
+				} else if (square_iswebbed(c, grid)) {
+					s = (dist == NULL || dist[y][x] >= 0) ?
+						"w" : "*";
+				} else if (square_object(c, grid)) {
+					s = (dist == NULL || dist[y][x] >= 0) ?
+						"$" : "*";
+				} else if (square_isempty(c, grid) &&
+						(square_isvault(c, grid) ||
+						square_isno_stairs(c, grid))) {
+					s = (dist == NULL || dist[y][x] >= 0) ?
+						" " : "*";
+				} else if (square_ispassable(c, grid)) {
+					s = (dist == NULL || dist[y][x] >= 0) ?
+						"." : "*";
+				}
+			}
+			file_put(fo, s);
+		}
+		file_put(fo, "\n");
+	}
+	file_put(fo, "    </pre>\n");
+}
+
+
+/**
+ * Write the concluding material for the dump of one or more levels.
+ * \param fo Is the file handle to use.  Must be capable of sequential writes
+ * in text format.  Writes start at the current offset in the file.
+ */
+void dump_level_footer(ang_file *fo)
+{
+	file_put(fo, "  </body>\n</html>\n");
+}

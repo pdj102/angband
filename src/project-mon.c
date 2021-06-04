@@ -142,11 +142,11 @@ void thrust_away(struct loc centre, struct loc target, int grids_away)
 			next = loc_sum(grid, ddgrid_ddd[d % 8]);
 
 			/* There's someone there, try to switch places. */
-			if (square(cave, next).mon != 0) {
+			if (square(cave, next)->mon != 0) {
 				/* A monster is trying to pass. */
-				if (square(cave, grid).mon > 0) {
+				if (square(cave, grid)->mon > 0) {
 					struct monster *mon = square_monster(cave, grid);
-					if (square(cave, next).mon > 0) {
+					if (square(cave, next)->mon > 0) {
 						struct monster *mon1 = square_monster(cave, next);
 
 						/* Monsters cannot pass by stronger monsters. */
@@ -160,8 +160,8 @@ void thrust_away(struct loc centre, struct loc target, int grids_away)
 				}
 
 				/* The player is trying to pass. */
-				if (square(cave, grid).mon < 0) {
-					if (square(cave, next).mon > 0) {
+				if (square(cave, grid)->mon < 0) {
+					if (square(cave, next)->mon > 0) {
 						struct monster *mon1 = square_monster(cave, next);
 
 						/* Players cannot pass by stronger monsters. */
@@ -191,7 +191,7 @@ void thrust_away(struct loc centre, struct loc target, int grids_away)
 				/* If there are walls everywhere, stop here. */
 				else if (d == (8 + first_d - 1)) {
 					/* Message for player. */
-					if (square(cave, grid).mon < 0)
+					if (square(cave, grid)->mon < 0)
 						msg("You come to rest next to a wall.");
 					i = grids_away;
 				}
@@ -210,16 +210,16 @@ void thrust_away(struct loc centre, struct loc target, int grids_away)
 
 	/* Some special messages or effects for player or monster. */
 	if (square_isfiery(cave, grid)) {
-		if (square(cave, grid).mon < 0) {
+		if (square(cave, grid)->mon < 0) {
 			msg("You are thrown into molten lava!");
-		} else if (square(cave, grid).mon > 0) {
+		} else if (square(cave, grid)->mon > 0) {
 			struct monster *mon = square_monster(cave, grid);
 			monster_take_terrain_damage(mon);
 		}
 	}
 
 	/* Clear the projection mark. */
-	sqinfo_off(square(cave, grid).info, SQUARE_PROJECT);
+	sqinfo_off(square(cave, grid)->info, SQUARE_PROJECT);
 }
 
 /**
@@ -396,6 +396,7 @@ static void project_monster_teleport_away(project_monster_handler_context_t *con
 	if (rf_has(context->mon->race->flags, flag)) {
 		context->teleport_distance = context->dam;
 		context->hurt_msg = MON_MSG_DISAPPEAR;
+		monster_wake(context->mon, false, 100);
 	} else {
 		context->skipped = true;
 	}
@@ -420,6 +421,7 @@ static void project_monster_scare(project_monster_handler_context_t *context, in
 
 	if (rf_has(context->mon->race->flags, flag)) {
         context->mon_timed[MON_TMD_FEAR] = adjust_radius(context, context->dam);
+		monster_wake(context->mon, false, 100);
 	} else {
 		context->skipped = true;
 	}
@@ -906,9 +908,6 @@ static void project_monster_handler_MON_POLY(project_monster_handler_context_t *
 /* Heal Monster (use "dam" as amount of healing) */
 static void project_monster_handler_MON_HEAL(project_monster_handler_context_t *context)
 {
-	/* Wake up, become aware */
-	monster_wake(context->mon, false, 100);
-
 	/* Heal */
 	context->mon->hp += context->dam;
 
@@ -1295,7 +1294,7 @@ void project_m(struct source origin, int r, struct loc grid, int dam, int typ,
 	bool charm = (origin.what == SRC_PLAYER) ?
 		player_has(player, PF_CHARM) : false;
 
-	int m_idx = square(cave, grid).mon;
+	int m_idx = square(cave, grid)->mon;
 
 	project_monster_handler_f monster_handler = monster_handlers[typ];
 	project_monster_handler_context_t context = {
@@ -1364,6 +1363,10 @@ void project_m(struct source origin, int r, struct loc grid, int dam, int typ,
 
 	if (monster_handler != NULL)
 		monster_handler(&context);
+
+	/* Wake monster if required */
+	if (projections[typ].wake)
+		monster_wake(mon, false, 100);
 
 	/* Absolutely no effect */
 	if (context.skipped) return;

@@ -81,7 +81,7 @@
 
 #define uint unsigned int
 
-#if (defined(WINDOWS) && !defined(USE_SDL))
+#if (defined(WINDOWS) && !defined(USE_SDL)) && !defined(USE_SDL2)
 
 #include "sound.h"
 #include "snd-win.h"
@@ -695,7 +695,7 @@ static void save_prefs_aux(term_data *td, const char *sec_name)
 	rc = lpwndpl.rcNormalPosition;
 
 	/* Get information about the placement of the window */
-	if (lpwndpl.flags & SW_SHOWMAXIMIZED)
+	if (lpwndpl.showCmd & SW_SHOWMAXIMIZED)
 		td->maximized = true;
 	else
 		td->maximized = false;
@@ -1656,6 +1656,7 @@ static errr Term_xtra_win_react(void)
 				td->t.pict_hook = Term_pict_win;
 			}
 		}
+		td->t.dblh_hook = (overdraw) ? is_dh_tile : NULL;
 
 		/* make sure the current graphics mode is set */
 		current_graphics_mode = get_graphics_mode(arg_graphics);
@@ -1675,7 +1676,7 @@ static errr Term_xtra_win_react(void)
 		}
 
 		/* Reset visuals */
-		reset_visuals(true);
+		if (character_dungeon) reset_visuals(true);
 	}
 
 	/* Handle "change_tilesize" */
@@ -1954,11 +1955,11 @@ static errr Term_bigcurs_win(int x, int y)
 
 
 /**
- * Low level graphics (Assumes valid input).
- *
- * Erase a "block" of "n" characters starting at (x,y).
+ * Help Term_wipe_win(), Term_pict_win(), and Term_pict_win_alpha():
+ * erase a nc x nr block of characters where the upper left corner
+ * of the block is at (x,y).
  */
-static errr Term_wipe_win(int x, int y, int n)
+static errr Term_wipe_win_helper(int x, int y, int nc, int nr)
 {
 	term_data *td = (term_data*)(Term->data);
 
@@ -1967,9 +1968,9 @@ static errr Term_wipe_win(int x, int y, int n)
 
 	/* Rectangle to erase in client coords */
 	rc.left = x * td->tile_wid + td->size_ow1;
-	rc.right = rc.left + n * td->tile_wid;
+	rc.right = rc.left + nc * td->tile_wid;
 	rc.top = y * td->tile_hgt + td->size_oh1;
-	rc.bottom = rc.top + td->tile_hgt;
+	rc.bottom = rc.top + nr * td->tile_hgt;
 
 	hdc = GetDC(td->w);
 	SetBkColor(hdc, RGB(0, 0, 0));
@@ -1979,6 +1980,17 @@ static errr Term_wipe_win(int x, int y, int n)
 
 	/* Success */
 	return 0;
+}
+
+
+/**
+ * Low level graphics (Assumes valid input).
+ *
+ * Erase a "block" of "n" characters starting at (x,y).
+ */
+static errr Term_wipe_win(int x, int y, int n)
+{
+	return Term_wipe_win_helper(x, y, n, 1);
 }
 
 
@@ -2100,6 +2112,7 @@ static errr Term_pict_win(int x, int y, int n,
 	term_data *td = (term_data*)(Term->data);
 
 	int i;
+	int mw, mh;
 	int x1, y1, w1, h1;
 	int x2, y2, w2, h2, tw2, th2;
 	int x3, y3;
@@ -2109,9 +2122,6 @@ static errr Term_pict_win(int x, int y, int n,
 	HDC hdcSrc;
 	HBITMAP hbmSrcOld;
 
-	/* Erase the grids */
-	Term_wipe_win(x, y, n);
-
 	/* Size of bitmap cell */
 	w1 = infGraph.CellWidth;
 	h1 = infGraph.CellHeight;
@@ -2120,16 +2130,21 @@ static errr Term_pict_win(int x, int y, int n,
 	if (td->map_active) {
 		w2 = td->map_tile_wid;
 		h2 = td->map_tile_hgt;
-		tw2 = w2;
-		th2 = h2;
+		mw = 1;
+		mh = 1;
 	} else {
 		w2 = td->tile_wid;
 		h2 = td->tile_hgt;
 
 		/* Large tile mode */
-		th2 = tile_height * h2;
-		tw2 = tile_width * w2;
+		mw = tile_width;
+		mh = tile_height;
 	}
+	tw2 = mw * w2;
+	th2 = mh * h2;
+
+	/* Erase the grids */
+	Term_wipe_win_helper(x, y, n * mw, mh);
 
 	/* Location of window cell */
 	x2 = x * w2 + td->size_ow1;
@@ -2281,6 +2296,56 @@ size_t Term_mbstowcs_win(wchar_t *dest, const char *src, int n)
 }
 
 
+int Term_wcsz_win(void)
+{
+	/*
+	 * Any Unicode code point is representable by at most 4 bytes in UTF-8.
+	 */
+	return 4;
+}
+
+
+/**
+ * Convert back to UTF-8 from a wide character.
+ *
+ * This is a necessary counterpart to Term_mbstowcs_win():  since the forward
+ * conversion from UTF-8 to wide characters was overridden, need to override
+ * the reverse conversion so that file output from screen captures and text
+ * blocks properly translates any multibyte characters.
+ */
+int Term_wctomb_win(char *s, wchar_t wchar)
+{
+	/*
+	 * If only want compatibility with Vista and later, could use
+	 * WC_ERR_INVALID_CHARS rather than zero for the second argument;
+	 * that would give an error if converting something not representable
+	 * in UTF-8.
+	 */
+	int n = WideCharToMultiByte(CP_UTF8, 0, &wchar, 1, s, Term_wcsz_win(),
+		NULL, NULL);
+	return (n > 0) ? n : -1;
+}
+
+
+/**
+ * Return whether a wide character is printable.
+ *
+ * This is a necessary counterpart to Term_mbstowcs_win() so that screening
+ * of wide characters in the core's text_out_to_screen() is consistent with what
+ * Term_mbstowcs_win() does.
+ */
+int Term_iswprint_win(wint_t wc)
+{
+	/*
+	 * It's a UTF-16 value, but can cast and test as UTF-32 (if it's the
+	 * leading part of a surrogate pair it'll be treated as unprintable
+	 * which is desirable:  on Windows, ui-term as it is can't handle
+	 * characters that have to be encoded as surrogate pairs in UTF-16).
+	 */
+	return utf32_isprint((u32b) wc);
+}
+
+
 #ifndef AC_SRC_ALPHA
 #define AC_SRC_ALPHA     0x01
 #endif
@@ -2289,8 +2354,10 @@ static errr Term_pict_win_alpha(int x, int y, int n,
 								const int *tap, const wchar_t *tcp)
 {
 	term_data *td = (term_data*)(Term->data);
-
+	int dhrclip = (overdraw) ?
+		Term_get_first_tile_row(Term) + tile_height - 1 : 0;
 	int i;
+	int mw, mh;
 	int x1, y1, w1, h1;
 	int x2, y2, w2, h2, tw2, th2;
 	int x3, y3;
@@ -2298,9 +2365,6 @@ static errr Term_pict_win_alpha(int x, int y, int n,
 	HDC hdc;
 	HDC hdcSrc;
 	HBITMAP hbmSrcOld;
-
-	/* Erase the grids */
-	Term_wipe_win(x, y, n);
 
 	/* Size of bitmap cell */
 	w1 = infGraph.CellWidth;
@@ -2310,16 +2374,21 @@ static errr Term_pict_win_alpha(int x, int y, int n,
 	if (td->map_active) {
 		w2 = td->map_tile_wid;
 		h2 = td->map_tile_hgt;
-		tw2 = w2;
-		th2 = h2;
+		mw = 1;
+		mh = 1;
 	} else {
 		w2 = td->tile_wid;
 		h2 = td->tile_hgt;
 
 		/* Large tile mode */
-		th2 = tile_height * h2;
-		tw2 = tile_width * w2;
+		mw = tile_width;
+		mh = tile_height;
 	}
+	tw2 = mw * w2;
+	th2 = mh * h2;
+
+	/* Erase the grids */
+	Term_wipe_win_helper(x, y, n * mw, mh);
 
 	/* Location of window cell */
 	x2 = x * w2 + td->size_ow1;
@@ -2361,29 +2430,20 @@ static errr Term_pict_win_alpha(int x, int y, int n,
 			StretchBlt(hdc, x2, y2, tw2, th2, hdcSrc, x3, y3, w1, h1, SRCCOPY);
 		}
 
-		if (overdraw && (trow >= overdraw) && (y > 2) &&
-			(trow <= overdrawmax)) {
+		if (overdraw && trow >= overdraw && y > dhrclip &&
+				trow <= overdrawmax) {
 			AlphaBlend(hdc, x2, y2-th2, tw2, th2, hdcSrc, x3, y3-h1, w1, h1,
 					   blendfn);
-			/* Tell the core that the top tile is not what it thinks */
-			Term_mark(x, y-tile_height);
-			Term_mark(x, y); /* This tile is drawn every frame */
 		}
 
 		/* Only draw if terrain and overlay are different */
 		if ((x1 != x3) || (y1 != y3))
 		{
 			/* Copy the picture from the bitmap to the window */
-			if (overdraw && (row >= overdraw) && (y > 2) &&
-				(row <= overdrawmax)) {
+			if (overdraw && row >= overdraw && y > dhrclip &&
+					row <= overdrawmax) {
 				AlphaBlend(hdc, x2, y2-th2, tw2, th2*2, hdcSrc, x1, y1-h1, w1,
 						   h1*2, blendfn);
-				/* Tell the core that the top tile is not what it thinks */
-				Term_mark(x, y-tile_height);
-				/* This tile is drawn every frame but it is needed, otherwise
-				 * the top does not get drawn again when the user of this tile
-				 * does not move, but something else does */
-				Term_mark(x, y); 
 			} else {
 				AlphaBlend(hdc, x2, y2, tw2, th2, hdcSrc, x1, y1, w1, h1,
 						   blendfn);
@@ -2521,6 +2581,7 @@ static void term_data_link(term_data *td)
 	t->wipe_hook = Term_wipe_win;
 	t->text_hook = Term_text_win;
 	t->pict_hook = Term_pict_win;
+	t->dblh_hook = NULL;
 
 	/* Remember where we came from */
 	t->data = td;
@@ -2543,6 +2604,8 @@ static void init_windows(void)
 	term_data *td;
 
 	char buf[1024];
+
+	WINDOWPLACEMENT lpwndpl;
 
 	MENUITEMINFO mii;
 	HMENU hm;
@@ -2657,8 +2720,14 @@ static void init_windows(void)
 			/* Activate the window */
 			SetActiveWindow(td->w);
 
-			/* Bring window to top */
-			SetWindowPos(td->w, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+			/* Bring window to top, place it correctly */
+			lpwndpl.length = sizeof(WINDOWPLACEMENT);
+			lpwndpl.showCmd = SW_SHOWNORMAL;
+			lpwndpl.rcNormalPosition = (RECT) { td->pos_x, td->pos_y,
+												td->pos_x + td->size_wid,
+												td->pos_y + td->size_hgt };
+			SetWindowPlacement(td->w, &lpwndpl);
+			//SetWindowPos(td->w, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
 		}
 	}
 
@@ -2679,12 +2748,22 @@ static void init_windows(void)
 	term_data_link(td);
 	term_screen = &td->t;
 	text_mbcs_hook = Term_mbstowcs_win;
+	text_wctomb_hook = Term_wctomb_win;
+	text_wcsz_hook = Term_wcsz_win;
+	text_iswprint_hook = Term_iswprint_win;
 
 	/* Activate the main window */
 	SetActiveWindow(td->w);
 
+	/* Bring window to top, place it correctly */
+	lpwndpl.length = sizeof(WINDOWPLACEMENT);
+	lpwndpl.showCmd = SW_SHOWNORMAL;
+	lpwndpl.rcNormalPosition = (RECT) { td->pos_x, td->pos_y,
+										td->pos_x + td->size_wid,
+										td->pos_y + td->size_hgt };
+	SetWindowPlacement(td->w, &lpwndpl);
 	/* Bring main window back to top */
-	SetWindowPos(td->w, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+	//SetWindowPos(td->w, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
 
 	if (gamma_correction > 0)
 		build_gamma_table(gamma_correction);
@@ -4823,6 +4902,7 @@ static void hook_quit(const char *str)
 #ifdef HAS_CLEANUP
 	textui_cleanup();
 	cleanup_angband();
+	close_sound();
 #endif /* HAS_CLEANUP */
 
 	exit(0);
@@ -4929,6 +5009,17 @@ static void init_stuff(void)
 
 	/* Validate the "sound" directory */
 	validate_dir(ANGBAND_DIR_SOUNDS);
+}
+
+
+/**
+ * Perform (as ui-game.c's reinit_hook) platform-specific actions necessary
+ * when restarting without exiting.  Also called directly at startup.
+ */
+static void win_reinit(void)
+{
+	/* Initialise sound. */
+	init_sound("win", 0, NULL);
 }
 
 
@@ -5084,8 +5175,12 @@ int FAR PASCAL WinMain(HINSTANCE hInst, HINSTANCE hPrevInst,
 	/* Set command hook */
 	cmd_get_hook = textui_get_cmd;
 
-	/* Initialise sound */
-	init_sound("win", 0, NULL);
+	/*
+	 * Set action that needs to be done if restarting without exiting.
+	 * Also need to do it now.
+	 */
+	reinit_hook = win_reinit;
+	win_reinit();
 
 	/* Set up the display handlers and things. */
 	init_display();

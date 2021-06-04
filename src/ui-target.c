@@ -163,8 +163,8 @@ static bool adjust_panel_help(int y, int x, bool help)
 
 	int j;
 
-	int screen_hgt_main = help ? (Term->hgt - ROW_MAP - 3) 
-			 : (Term->hgt - ROW_MAP - 1);
+	int screen_hgt_main = help ? (Term->hgt - ROW_MAP - ROW_BOTTOM_MAP - 2)
+			 : (Term->hgt - ROW_MAP - ROW_BOTTOM_MAP);
 
 	/* Scan windows */
 	for (j = 0; j < ANGBAND_TERM_MAX; j++)
@@ -178,7 +178,7 @@ static bool adjust_panel_help(int y, int x, bool help)
 		if (!t) continue;
 
 		/* No relevant flags */
-		if ((j > 0) && !(window_flag[j] & PW_MAPS)) continue;
+		if ((j > 0) && !(window_flag[j] & PW_OVERHEAD)) continue;
 
 		wy = t->offset_y;
 		wx = t->offset_x;
@@ -337,7 +337,7 @@ static ui_event target_set_interactive_aux(int y, int x, int mode)
 		}
 
 		/* The player */
-		if (square(cave, loc(x, y)).mon < 0) {
+		if (square(cave, loc(x, y))->mon < 0) {
 			/* Description */
 			s1 = "You are ";
 
@@ -373,7 +373,7 @@ static ui_event target_set_interactive_aux(int y, int x, int mode)
 		}
 
 		/* Actual monsters */
-		if (square(cave, loc(x, y)).mon > 0) {
+		if (square(cave, loc(x, y))->mon > 0) {
 			struct monster *mon = square_monster(cave, loc(x, y));
 			const struct monster_lore *lore = get_lore(mon->race);
 
@@ -409,7 +409,7 @@ static ui_event target_set_interactive_aux(int y, int x, int mode)
 
 						/* Describe the monster */
 						look_mon_desc(buf, sizeof(buf),
-									  square(cave, loc(x, y)).mon);
+									  square(cave, loc(x, y))->mon);
 
 						/* Describe, and prompt for recall */
 						if (player->wizard) {
@@ -524,7 +524,7 @@ static ui_event target_set_interactive_aux(int y, int x, int mode)
 
 		/* A trap */
 		if (square_isvisibletrap(cave, loc(x, y))) {
-			struct trap *trap = square(cave, loc(x, y)).trap;
+			struct trap *trap = square(cave, loc(x, y))->trap;
 
 			/* Not boring */
 			boring = false;
@@ -532,7 +532,7 @@ static ui_event target_set_interactive_aux(int y, int x, int mode)
 			/* Interact */
 			while (1) {
 				/* Change the intro */
-				if (square(cave, loc(x, y)).mon < 0) {
+				if (square(cave, loc(x, y))->mon < 0) {
 					s1 = "You are ";
 					s2 = "on ";
 				} else {
@@ -684,15 +684,11 @@ static ui_event target_set_interactive_aux(int y, int x, int mode)
 		if (boring || square_isinteresting(cave, loc(x, y))) {
 			/* Hack -- handle unknown grids */
 
-			/* Pick a prefix */
-			if (*s2 && square_isdoor(cave, loc(x, y))) s2 = "in ";
+			/* Pick a preposition if needed */
+			if (*s2) s2 = square_apparent_look_in_preposition(cave, player, loc(x, y));
 
-			/* Pick proper indefinite article */
-			s3 = (is_a_vowel(name[0])) ? "an " : "a ";
-
-			/* Hack -- special introduction for store doors */
-			if (square_isshop(cave, loc(x, y)))
-				s3 = "the entrance to the ";
+			/* Pick prefix for the name */
+			s3 = square_apparent_look_prefix(cave, player, loc(x, y));
 
 			/* Display a message */
 			if (player->wizard) {

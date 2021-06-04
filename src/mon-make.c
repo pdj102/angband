@@ -247,8 +247,8 @@ struct monster_race *get_mon_num(int level)
 			!(date->tm_mon == 11 && date->tm_mday >= 24 && date->tm_mday <= 26))
 			continue;
 
-		/* Only one copy of a a unique must be around at the same time */
-		if (rf_has(race->flags, RF_UNIQUE) && race->cur_num >= race->max_num)
+		/* Only one copy of a unique must be around at the same time */
+		if (rf_has(race->flags, RF_UNIQUE) && (race->cur_num >= race->max_num))
 			continue;
 
 		/* Some monsters never appear out of depth */
@@ -315,7 +315,8 @@ void delete_monster_idx(int m_idx)
 	grid = mon->grid;
 
 	/* Hack -- Reduce the racial counter */
-	mon->race->cur_num--;
+	if (mon->original_race) mon->original_race->cur_num--;
+	else mon->race->cur_num--;
 
 	/* Count the number of "reproducers" */
 	if (rf_has(mon->race->flags, RF_MULTIPLY)) {
@@ -347,8 +348,9 @@ void delete_monster_idx(int m_idx)
 		/* Preserve unseen artifacts (we assume they were created as this
 		 * monster's drop) - this will cause unintended behaviour in preserve
 		 * off mode if monsters can pick up artifacts */
-		if (obj->artifact && !(obj->known && obj->known->artifact))
+		if (obj->artifact && !obj_is_known_artifact(obj)) {
 			obj->artifact->created = false;
+		}
 
 		/* Delete the object.  Since it's in the cave's list do
 		 * some additional bookkeeping. */
@@ -392,8 +394,8 @@ void delete_monster(struct loc grid)
 	assert(square_in_bounds(cave, grid));
 
 	/* Delete the monster (if any) */
-	if (square(cave, grid).mon > 0)
-		delete_monster_idx(square(cave, grid).mon);
+	if (square(cave, grid)->mon > 0)
+		delete_monster_idx(square(cave, grid)->mon);
 }
 
 
@@ -581,7 +583,8 @@ void wipe_mon_list(struct chunk *c, struct player *p)
 		}
 
 		/* Reduce the racial counter */
-		mon->race->cur_num--;
+		if (mon->original_race) mon->original_race->cur_num--;
+		else mon->race->cur_num--;
 
 		/* Monster is gone from square */
 		square_set_mon(c, mon->grid, 0);
@@ -673,13 +676,21 @@ s16b mon_pop(struct chunk *c)
  * \param race is the monster race.
  * \param maximize should be set to false for a random number, true to find
  * out the maximum count.
+ * \param specific if true, specific drops will be included in the total
+ * returned; otherwise they are excluded from that value.
+ * \param specific_count if not NULL, *specific_count will be set to the
+ * number of specific objects (either a random value or the maximum if maximize
+ * is true).
  */
-int mon_create_drop_count(const struct monster_race *race, bool maximize)
+int mon_create_drop_count(const struct monster_race *race, bool maximize,
+	bool specific, int *specific_count)
 {
 	int number = 0;
+	int specnum = 0;
 	static const int drop_4_max = 6;
 	static const int drop_3_max = 4;
 	static const int drop_2_max = 3;
+	struct monster_drop *drop;
 
 	if (maximize) {
 		if (rf_has(race->flags, RF_DROP_20)) number++;
@@ -689,6 +700,9 @@ int mon_create_drop_count(const struct monster_race *race, bool maximize)
 		if (rf_has(race->flags, RF_DROP_3)) number += drop_3_max;
 		if (rf_has(race->flags, RF_DROP_2)) number += drop_2_max;
 		if (rf_has(race->flags, RF_DROP_1)) number++;
+		for (drop = race->drops; drop; drop = drop->next) {
+			specnum += drop->max;
+		}
 	} else {
 		if (rf_has(race->flags, RF_DROP_20) && randint0(100) < 20) number++;
 		if (rf_has(race->flags, RF_DROP_40) && randint0(100) < 40) number++;
@@ -697,8 +711,20 @@ int mon_create_drop_count(const struct monster_race *race, bool maximize)
 		if (rf_has(race->flags, RF_DROP_3)) number += rand_range(2, drop_3_max);
 		if (rf_has(race->flags, RF_DROP_2)) number += rand_range(1, drop_2_max);
 		if (rf_has(race->flags, RF_DROP_1)) number++;
+		for (drop = race->drops; drop; drop = drop->next) {
+			if ((unsigned int)randint0(100) <
+					drop->percent_chance) {
+				specnum += randint0(drop->max - drop->min) +
+					drop->min;
+			}
+		}
 	}
-
+	if (specific) {
+		number += specnum;
+	}
+	if (specific_count) {
+		*specific_count = specnum;
+	}
 	return number;
 }
 
@@ -714,7 +740,7 @@ static bool mon_create_drop(struct chunk *c, struct monster *mon, byte origin)
 	struct monster_lore *lore = get_lore(mon->race);
 
 	bool great, good, gold_ok, item_ok;
-    bool extra_roll = false;
+	bool extra_roll = false;
 	bool any = false;
 
 	int number = 0, level, j, monlevel;
@@ -729,24 +755,24 @@ static bool mon_create_drop(struct chunk *c, struct monster *mon, byte origin)
 	item_ok = (!rf_has(mon->race->flags, RF_ONLY_GOLD));
 
 	/* Determine how much we can drop */
-	number = mon_create_drop_count(mon->race, false);
+	number = mon_create_drop_count(mon->race, false, false, NULL);
 
 	/* Uniques that have been stolen from get their quantity reduced */
-    if (rf_has(mon->race->flags, RF_UNIQUE)) {
+	if (rf_has(mon->race->flags, RF_UNIQUE)) {
 		number = MAX(0, number - lore->thefts);
 	}
 
-    /* Give added bonus for unique monsters */
-    monlevel = mon->race->level;
-    if (rf_has(mon->race->flags, RF_UNIQUE)) {
-        monlevel = MIN(monlevel + 15, monlevel * 2);
-        extra_roll = true;
-    }
+	/* Give added bonus for unique monsters */
+	monlevel = mon->race->level;
+	if (rf_has(mon->race->flags, RF_UNIQUE)) {
+		monlevel = MIN(monlevel + 15, monlevel * 2);
+		extra_roll = true;
+	}
 
 	/* Take the best of (average of monster level and current depth)
 	   and (monster level) - to reward fighting OOD monsters */
 	level = MAX((monlevel + player->depth) / 2, monlevel);
-    level = MIN(level, 100);
+	level = MIN(level, 100);
 
 	/* Morgoth currently drops all artifacts with the QUEST_ART flag */
 	if (rf_has(mon->race->flags, RF_QUESTOR) && (mon->race->level == 100)) {
@@ -800,14 +826,15 @@ static bool mon_create_drop(struct chunk *c, struct monster *mon, byte origin)
 							  drop->tval);
 		}
 
-		/* Abort if no good object is found */
+		/* Skip if the object couldn't be created. */
 		if (!obj) continue;
 
 		/* Set origin details */
 		obj->origin = origin;
 		obj->origin_depth = player->depth;
 		obj->origin_race = mon->race;
-		obj->number = randint0(drop->max - drop->min) + drop->min;
+		obj->number = (obj->artifact) ?
+			1 : randint0(drop->max - drop->min) + drop->min;
 
 		/* Try to carry */
 		if (monster_carry(c, mon, obj)) {
@@ -836,7 +863,9 @@ static bool mon_create_drop(struct chunk *c, struct monster *mon, byte origin)
 		if (monster_carry(c, mon, obj)) {
 			any = true;
 		} else {
-			obj->artifact->created = false;
+			if (obj->artifact) {
+				obj->artifact->created = false;
+			}
 			object_wipe(obj);
 			mem_free(obj);
 		}
@@ -991,7 +1020,8 @@ s16b place_monster(struct chunk *c, struct loc grid, struct monster *mon,
 	if (rf_has(new_mon->race->flags, RF_MULTIPLY)) c->num_repro++;
 
 	/* Count racial occurrences */
-	new_mon->race->cur_num++;
+	if (new_mon->original_race) new_mon->original_race->cur_num++;
+	else new_mon->race->cur_num++;
 
 	/* Create the monster's drop, if any */
 	if (origin)
@@ -1054,7 +1084,7 @@ static bool place_new_monster_one(struct chunk *c, struct loc grid,
 	if (square_iswarded(c, grid) || square_isdecoyed(c, grid)) return false;
 
 	/* "unique" monsters must be "unique" */
-	if (rf_has(race->flags, RF_UNIQUE) && race->cur_num >= race->max_num)
+	if (rf_has(race->flags, RF_UNIQUE) && (race->cur_num >= race->max_num))
 		return false;
 
 	/* Depth monsters may NOT be created out of depth */
@@ -1231,7 +1261,7 @@ static bool place_monster_base_okay(struct monster_race *race)
 /**
  * Helper function to place monsters that appear as friends or escorts
  */
-bool place_friends(struct chunk *c, struct loc grid, struct monster_race *race,
+static bool place_friends(struct chunk *c, struct loc grid, struct monster_race *race,
 					struct monster_race *friends_race, int total, bool sleep,
 					struct monster_group_info group_info, byte origin)
 {
@@ -1244,8 +1274,8 @@ bool place_friends(struct chunk *c, struct loc grid, struct monster_race *race,
 	bool is_unique = rf_has(friends_race->flags, RF_UNIQUE);
 
 	/* Make sure the unique hasn't been killed already */
-	if (is_unique) {
-		total = friends_race->cur_num < friends_race->max_num ? 1 : 0;
+	if (is_unique && (friends_race->cur_num >= friends_race->max_num)) {
+		return false;
 	}
 
 	/* More than 4 levels OoD, no groups allowed */
